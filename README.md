@@ -161,14 +161,12 @@ Offline mode
 🤝 **Contributing**
 
 Fork the repository
-
 Create a feature branch
-
 Commit your updates
-
 Open a pull request
 
 📄**License**
 
 MIT License – free for personal and commercial use.
+
 
