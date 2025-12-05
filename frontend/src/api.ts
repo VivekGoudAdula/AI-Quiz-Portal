@@ -21,13 +21,30 @@ class APIClient {
           const { state } = JSON.parse(token)
           if (state?.token) {
             config.headers.Authorization = `Bearer ${state.token}`
+            console.log('✅ Token added to request:', config.url)
+          } else {
+            console.warn('⚠️ No token found in state for request:', config.url)
           }
         } catch (e) {
-          // Token parsing failed
+          console.error('❌ Failed to parse auth storage:', e)
         }
+      } else {
+        console.warn('⚠️ No auth storage found for request:', config.url)
       }
       return config
     })
+
+    // Handle errors
+    this.client.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 401) {
+          console.error('❌ 401 Unauthorized - Token may be invalid or expired')
+          console.log('Auth storage:', localStorage.getItem('auth-storage'))
+        }
+        return Promise.reject(error)
+      }
+    )
   }
 
   // Auth endpoints

@@ -31,7 +31,14 @@ export default function SignupPage() {
 
     try {
       const response = await apiClient.signup(formData.name, formData.email, formData.password, formData.role)
+      console.log('Signup response:', response)
       const { user, access_token, token } = response.data
+      
+      if (!user || !access_token && !token) {
+        setError('Invalid response from server - missing user or token')
+        return
+      }
+      
       login(user, access_token || token || '')
       
       // Redirect based on role
@@ -39,7 +46,9 @@ export default function SignupPage() {
       else if (user.role === 'admin') navigate('/admin/dashboard')
       else navigate('/dashboard')
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Signup failed')
+      console.error('Signup error:', err)
+      const errorMsg = err.response?.data?.error || err.message || 'Signup failed'
+      setError(errorMsg)
     } finally {
       setLoading(false)
     }

@@ -26,7 +26,14 @@ export default function LoginPage() {
 
     try {
       const response = await apiClient.login(formData.email, formData.password)
+      console.log('Login response:', response)
       const { user, access_token, token } = response.data
+      
+      if (!user || !access_token && !token) {
+        setError('Invalid response from server - missing user or token')
+        return
+      }
+      
       login(user, access_token || token || '')
 
       // Redirect based on role
@@ -34,7 +41,9 @@ export default function LoginPage() {
       else if (user.role === 'admin') navigate('/admin/dashboard')
       else navigate('/dashboard')
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Login failed')
+      console.error('Login error:', err)
+      const errorMsg = err.response?.data?.error || err.message || 'Login failed'
+      setError(errorMsg)
     } finally {
       setLoading(false)
     }

@@ -39,10 +39,27 @@ export const AssignedQuizzes: React.FC = () => {
   const fetchQuizzes = async () => {
     try {
       setLoading(true);
+      console.log('Fetching assigned quizzes...');
+      
+      // Check if token exists
+      const authStorage = localStorage.getItem('auth-storage');
+      console.log('Auth storage:', authStorage ? 'exists' : 'missing');
+      if (authStorage) {
+        try {
+          const parsed = JSON.parse(authStorage);
+          console.log('Token:', parsed.state?.token ? 'exists' : 'missing');
+        } catch (e) {
+          console.error('Failed to parse auth storage:', e);
+        }
+      }
+      
       const response = await apiClient.getAssignedQuizzes();
-      setQuizzes(response.data.quizzes);
+      console.log('Quizzes response:', response.data);
+      setQuizzes(response.data.quizzes || []);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to fetch quizzes');
+      console.error('Failed to fetch quizzes:', err);
+      const errorMsg = err.response?.data?.error || err.message || 'Failed to fetch quizzes';
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
