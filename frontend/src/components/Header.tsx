@@ -28,9 +28,10 @@ export default function Header() {
             <div className="hidden md:flex items-center gap-6">
               {user.role === 'student' && (
                 <>
-                  <Link to="/dashboard" className="hover:text-blue-200 transition">Dashboard</Link>
-                  <Link to="/quizzes" className="hover:text-blue-200 transition">Quizzes</Link>
-                  <Link to="/history" className="hover:text-blue-200 transition">History</Link>
+                  <Link to="/dashboard" className="hover:text-blue-200 transition-all duration-300 hover:scale-105 px-3 py-1 rounded-lg hover:bg-blue-700">Dashboard</Link>
+                  <Link to="/quizzes" className="hover:text-blue-200 transition-all duration-300 hover:scale-105 px-3 py-1 rounded-lg hover:bg-blue-700">Quizzes</Link>
+                  <Link to="/leaderboard" className="hover:text-blue-200 transition-all duration-300 hover:scale-105 px-3 py-1 rounded-lg hover:bg-blue-700">Leaderboard</Link>
+                  <Link to="/history" className="hover:text-blue-200 transition-all duration-300 hover:scale-105 px-3 py-1 rounded-lg hover:bg-blue-700">History</Link>
                 </>
               )}
               {user.role === 'instructor' && (
@@ -91,9 +92,10 @@ export default function Header() {
               <>
                 {user.role === 'student' && (
                   <>
-                    <Link to="/dashboard" className="block py-2 hover:text-blue-200">Dashboard</Link>
-                    <Link to="/quizzes" className="block py-2 hover:text-blue-200">Quizzes</Link>
-                    <Link to="/history" className="block py-2 hover:text-blue-200">History</Link>
+                    <Link to="/dashboard" className="block py-2 hover:text-blue-200 transition-all hover:pl-2">Dashboard</Link>
+                    <Link to="/quizzes" className="block py-2 hover:text-blue-200 transition-all hover:pl-2">Quizzes</Link>
+                    <Link to="/leaderboard" className="block py-2 hover:text-blue-200 transition-all hover:pl-2">Leaderboard</Link>
+                    <Link to="/history" className="block py-2 hover:text-blue-200 transition-all hover:pl-2">History</Link>
                   </>
                 )}
                 <button onClick={handleLogout} className="w-full text-left py-2 hover:text-blue-200">

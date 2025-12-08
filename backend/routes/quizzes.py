@@ -311,15 +311,14 @@ def generate_ai_questions():
         if difficulty not in ['easy', 'medium', 'hard']:
             return jsonify({'error': 'Difficulty must be easy, medium, or hard'}), 400
         
-        # Generate questions using OpenAI-like prompt
+        # Question templates by topic category for variety
+        question_templates = _get_question_templates(topic, difficulty, num_questions)
+        
         generated_questions = []
         
-        for i in range(num_questions):
-            # Create MCQ question
-            question_text = f"Question {i+1} about {topic} ({difficulty} level)"
-            
+        for i, q_data in enumerate(question_templates):
             new_question = Question(
-                text=question_text,
+                text=q_data['question'],
                 type='mcq',
                 difficulty=difficulty,
                 created_by_id=user_id
@@ -327,23 +326,22 @@ def generate_ai_questions():
             db.session.add(new_question)
             db.session.flush()
             
-            # Add sample options
-            options = [
-                f"Option A for {topic}",
-                f"Option B for {topic}",
-                f"Option C for {topic}",
-                f"Option D for {topic}"
-            ]
+            # Randomize which option is correct (0-3)
+            correct_idx = random.randint(0, 3)
+            option_letters = ['A', 'B', 'C', 'D']
             
-            for idx, option_text in enumerate(options):
+            for idx, letter in enumerate(option_letters):
                 option = QuestionOption(
                     question_id=new_question.id,
-                    text=option_text,
-                    is_correct=(idx == 0)  # First option is correct
+                    text=q_data['options'][letter],
+                    is_correct=(idx == correct_idx)
                 )
                 db.session.add(option)
             
-            generated_questions.append(new_question.to_dict())
+            # Store correct answer letter for response
+            q_dict = new_question.to_dict()
+            q_dict['correctAnswer'] = option_letters[correct_idx]
+            generated_questions.append(q_dict)
         
         db.session.commit()
         
@@ -355,6 +353,288 @@ def generate_ai_questions():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
+
+def _get_question_templates(topic: str, difficulty: str, count: int) -> list:
+    """Generate unique question templates based on topic and difficulty"""
+    import hashlib
+    import time
+    
+    # Create unique seed for this generation
+    seed = hashlib.md5(f"{topic}{difficulty}{time.time()}{random.random()}".encode()).hexdigest()
+    random.seed(seed)
+    
+    topic_lower = topic.lower()
+    questions = []
+    
+    # Programming/Tech topics
+    if any(kw in topic_lower for kw in ['python', 'programming', 'code', 'coding']):
+        questions = _generate_programming_questions(topic, difficulty, count)
+    elif any(kw in topic_lower for kw in ['react', 'javascript', 'frontend', 'web', 'html', 'css']):
+        questions = _generate_frontend_questions(topic, difficulty, count)
+    elif any(kw in topic_lower for kw in ['database', 'sql', 'mysql', 'mongodb']):
+        questions = _generate_database_questions(topic, difficulty, count)
+    elif any(kw in topic_lower for kw in ['machine learning', 'ml', 'ai', 'deep learning', 'neural']):
+        questions = _generate_ml_questions(topic, difficulty, count)
+    elif any(kw in topic_lower for kw in ['network', 'security', 'cyber', 'protocol']):
+        questions = _generate_network_questions(topic, difficulty, count)
+    else:
+        questions = _generate_general_questions(topic, difficulty, count)
+    
+    # Reset random seed
+    random.seed()
+    
+    return questions[:count]
+
+
+def _generate_programming_questions(topic: str, difficulty: str, count: int) -> list:
+    """Generate programming-related questions"""
+    templates = [
+        {
+            "question": f"What is the correct way to define a function in {topic}?",
+            "options": {"A": "def function_name():", "B": "function function_name():", "C": "fn function_name():", "D": "define function_name():"}
+        },
+        {
+            "question": f"Which data type is used to store a sequence of characters in {topic}?",
+            "options": {"A": "int", "B": "float", "C": "str", "D": "bool"}
+        },
+        {
+            "question": f"What is the output of print(type([])) in {topic}?",
+            "options": {"A": "<class 'list'>", "B": "<class 'array'>", "C": "<class 'tuple'>", "D": "<class 'dict'>"}
+        },
+        {
+            "question": f"Which keyword is used to handle exceptions in {topic}?",
+            "options": {"A": "try-except", "B": "catch-throw", "C": "handle-error", "D": "if-else"}
+        },
+        {
+            "question": f"What is the purpose of __init__ method in {topic} classes?",
+            "options": {"A": "Constructor method", "B": "Destructor method", "C": "Static method", "D": "Class method"}
+        },
+        {
+            "question": f"Which operator is used for exponentiation in {topic}?",
+            "options": {"A": "**", "B": "^", "C": "^^", "D": "exp()"}
+        },
+        {
+            "question": f"What does the 'self' keyword represent in {topic}?",
+            "options": {"A": "Current instance of the class", "B": "Parent class", "C": "Global variable", "D": "Module name"}
+        },
+        {
+            "question": f"Which method is used to add an element to a list in {topic}?",
+            "options": {"A": "append()", "B": "add()", "C": "insert_end()", "D": "push()"}
+        },
+        {
+            "question": f"What is a lambda function in {topic}?",
+            "options": {"A": "Anonymous function", "B": "Recursive function", "C": "Generator function", "D": "Async function"}
+        },
+        {
+            "question": f"Which statement is used to exit a loop prematurely in {topic}?",
+            "options": {"A": "break", "B": "exit", "C": "stop", "D": "end"}
+        },
+    ]
+    random.shuffle(templates)
+    return templates
+
+
+def _generate_frontend_questions(topic: str, difficulty: str, count: int) -> list:
+    """Generate frontend development questions"""
+    templates = [
+        {
+            "question": f"What hook is used for side effects in React?",
+            "options": {"A": "useEffect", "B": "useState", "C": "useContext", "D": "useReducer"}
+        },
+        {
+            "question": f"Which CSS property is used to make a flex container?",
+            "options": {"A": "display: flex", "B": "position: flex", "C": "layout: flex", "D": "flex: true"}
+        },
+        {
+            "question": f"What is the virtual DOM in React?",
+            "options": {"A": "Lightweight copy of the real DOM", "B": "Browser extension", "C": "Server-side rendering", "D": "CSS framework"}
+        },
+        {
+            "question": f"Which HTML tag is used for the largest heading?",
+            "options": {"A": "<h1>", "B": "<heading>", "C": "<head>", "D": "<h6>"}
+        },
+        {
+            "question": f"What does JSX stand for?",
+            "options": {"A": "JavaScript XML", "B": "Java Syntax Extension", "C": "JSON XML", "D": "JavaScript Extension"}
+        },
+        {
+            "question": f"Which method is used to update state in React functional components?",
+            "options": {"A": "useState setter function", "B": "this.setState()", "C": "updateState()", "D": "changeState()"}
+        },
+        {
+            "question": f"What is the purpose of the 'key' prop in React lists?",
+            "options": {"A": "Unique identifier for list items", "B": "Styling attribute", "C": "Event handler", "D": "Data binding"}
+        },
+        {
+            "question": f"Which CSS unit is relative to the font-size of the root element?",
+            "options": {"A": "rem", "B": "em", "C": "px", "D": "vh"}
+        },
+        {
+            "question": f"What is the correct way to conditionally render in React?",
+            "options": {"A": "{condition && <Component />}", "B": "if(condition) <Component />", "C": "<if condition><Component /></if>", "D": "render(condition, Component)"}
+        },
+        {
+            "question": f"Which event is triggered when a user clicks a button?",
+            "options": {"A": "onClick", "B": "onPress", "C": "onTap", "D": "onSelect"}
+        },
+    ]
+    random.shuffle(templates)
+    return templates
+
+
+def _generate_database_questions(topic: str, difficulty: str, count: int) -> list:
+    """Generate database-related questions"""
+    templates = [
+        {
+            "question": f"Which SQL command is used to retrieve data from a database?",
+            "options": {"A": "SELECT", "B": "GET", "C": "FETCH", "D": "RETRIEVE"}
+        },
+        {
+            "question": f"What does ACID stand for in database transactions?",
+            "options": {"A": "Atomicity, Consistency, Isolation, Durability", "B": "Access, Control, Identity, Data", "C": "Automatic, Concurrent, Isolated, Durable", "D": "Active, Consistent, Indexed, Dynamic"}
+        },
+        {
+            "question": f"Which SQL clause is used to filter records?",
+            "options": {"A": "WHERE", "B": "FILTER", "C": "HAVING", "D": "LIMIT"}
+        },
+        {
+            "question": f"What is a primary key in a database?",
+            "options": {"A": "Unique identifier for each record", "B": "First column in a table", "C": "Foreign reference", "D": "Index name"}
+        },
+        {
+            "question": f"Which SQL command is used to add new records?",
+            "options": {"A": "INSERT INTO", "B": "ADD RECORD", "C": "CREATE ROW", "D": "APPEND"}
+        },
+        {
+            "question": f"What is normalization in databases?",
+            "options": {"A": "Organizing data to reduce redundancy", "B": "Backing up data", "C": "Encrypting data", "D": "Compressing data"}
+        },
+        {
+            "question": f"Which join returns all records from both tables?",
+            "options": {"A": "FULL OUTER JOIN", "B": "INNER JOIN", "C": "LEFT JOIN", "D": "CROSS JOIN"}
+        },
+        {
+            "question": f"What is an index in a database?",
+            "options": {"A": "Data structure to speed up queries", "B": "Primary key", "C": "Table name", "D": "Column type"}
+        },
+    ]
+    random.shuffle(templates)
+    return templates
+
+
+def _generate_ml_questions(topic: str, difficulty: str, count: int) -> list:
+    """Generate machine learning questions"""
+    templates = [
+        {
+            "question": f"What is supervised learning?",
+            "options": {"A": "Learning with labeled data", "B": "Learning without labels", "C": "Reinforcement-based learning", "D": "Transfer learning"}
+        },
+        {
+            "question": f"Which algorithm is used for classification?",
+            "options": {"A": "Logistic Regression", "B": "Linear Regression", "C": "K-Means", "D": "PCA"}
+        },
+        {
+            "question": f"What is overfitting in machine learning?",
+            "options": {"A": "Model performs well on training but poorly on test data", "B": "Model performs poorly on all data", "C": "Model is too simple", "D": "Model has too few parameters"}
+        },
+        {
+            "question": f"Which technique is used to prevent overfitting?",
+            "options": {"A": "Regularization", "B": "More training data only", "C": "Increasing model complexity", "D": "Removing validation set"}
+        },
+        {
+            "question": f"What is a neural network activation function?",
+            "options": {"A": "Function that introduces non-linearity", "B": "Loss function", "C": "Optimizer", "D": "Learning rate"}
+        },
+        {
+            "question": f"What does CNN stand for in deep learning?",
+            "options": {"A": "Convolutional Neural Network", "B": "Connected Neural Network", "C": "Circular Neural Network", "D": "Computed Neural Network"}
+        },
+        {
+            "question": f"Which metric is used for regression problems?",
+            "options": {"A": "Mean Squared Error", "B": "Accuracy", "C": "F1 Score", "D": "Precision"}
+        },
+        {
+            "question": f"What is the purpose of the training set?",
+            "options": {"A": "To train the model", "B": "To test final performance", "C": "To tune hyperparameters", "D": "To deploy the model"}
+        },
+    ]
+    random.shuffle(templates)
+    return templates
+
+
+def _generate_network_questions(topic: str, difficulty: str, count: int) -> list:
+    """Generate networking/security questions"""
+    templates = [
+        {
+            "question": f"What does HTTP stand for?",
+            "options": {"A": "HyperText Transfer Protocol", "B": "High Transfer Text Protocol", "C": "Hyper Transfer Text Protocol", "D": "Home Text Transfer Protocol"}
+        },
+        {
+            "question": f"Which port does HTTPS use by default?",
+            "options": {"A": "443", "B": "80", "C": "8080", "D": "22"}
+        },
+        {
+            "question": f"What is the purpose of a firewall?",
+            "options": {"A": "Filter network traffic", "B": "Speed up internet", "C": "Store data", "D": "Compress files"}
+        },
+        {
+            "question": f"What does DNS stand for?",
+            "options": {"A": "Domain Name System", "B": "Data Network Service", "C": "Digital Name Server", "D": "Dynamic Network System"}
+        },
+        {
+            "question": f"Which protocol is used for secure file transfer?",
+            "options": {"A": "SFTP", "B": "FTP", "C": "HTTP", "D": "SMTP"}
+        },
+        {
+            "question": f"What is an IP address?",
+            "options": {"A": "Unique identifier for a device on a network", "B": "Website name", "C": "Email address", "D": "Password"}
+        },
+        {
+            "question": f"What is encryption?",
+            "options": {"A": "Converting data into a coded format", "B": "Compressing data", "C": "Deleting data", "D": "Copying data"}
+        },
+        {
+            "question": f"Which layer of OSI model handles routing?",
+            "options": {"A": "Network Layer", "B": "Transport Layer", "C": "Data Link Layer", "D": "Application Layer"}
+        },
+    ]
+    random.shuffle(templates)
+    return templates
+
+
+def _generate_general_questions(topic: str, difficulty: str, count: int) -> list:
+    """Generate general topic questions"""
+    import uuid
+    
+    question_starters = [
+        f"What is the primary purpose of {topic}?",
+        f"Which of the following best describes {topic}?",
+        f"What is a key characteristic of {topic}?",
+        f"How does {topic} differ from traditional approaches?",
+        f"What is the main advantage of using {topic}?",
+        f"Which component is essential in {topic}?",
+        f"What problem does {topic} primarily solve?",
+        f"In {topic}, what is considered a best practice?",
+        f"What is the fundamental concept behind {topic}?",
+        f"Which statement about {topic} is correct?",
+    ]
+    
+    templates = []
+    for i, question in enumerate(question_starters[:count]):
+        unique_id = str(uuid.uuid4())[:4]
+        templates.append({
+            "question": question,
+            "options": {
+                "A": f"Core functionality and implementation of {topic}",
+                "B": f"Secondary feature related to {topic}",
+                "C": f"Alternative approach to {topic}",
+                "D": f"Unrelated concept to {topic}"
+            }
+        })
+    
+    random.shuffle(templates)
+    return templates
 
 
 @quizzes_bp.route('/<quiz_id>/assign', methods=['POST'])

@@ -11,27 +11,7 @@ class APIClient {
       headers: {
         'Content-Type': 'application/json',
       },
-    })
-
-    // Add token to requests
-    this.client.interceptors.request.use((config) => {
-      const token = localStorage.getItem('auth-storage')
-      if (token) {
-        try {
-          const { state } = JSON.parse(token)
-          if (state?.token) {
-            config.headers.Authorization = `Bearer ${state.token}`
-            console.log('✅ Token added to request:', config.url)
-          } else {
-            console.warn('⚠️ No token found in state for request:', config.url)
-          }
-        } catch (e) {
-          console.error('❌ Failed to parse auth storage:', e)
-        }
-      } else {
-        console.warn('⚠️ No auth storage found for request:', config.url)
-      }
-      return config
+      withCredentials: true, // Enable cookies for session auth
     })
 
     // Handle errors
@@ -39,8 +19,7 @@ class APIClient {
       (response) => response,
       (error) => {
         if (error.response?.status === 401) {
-          console.error('❌ 401 Unauthorized - Token may be invalid or expired')
-          console.log('Auth storage:', localStorage.getItem('auth-storage'))
+          console.error('❌ 401 Unauthorized - Please log in')
         }
         return Promise.reject(error)
       }
@@ -230,6 +209,19 @@ class APIClient {
 
   getAssignedQuizzes() {
     return this.client.get('/quizzes/student/assigned')
+  }
+
+  // Leaderboard endpoints
+  getLeaderboard() {
+    return this.client.get('/leaderboard')
+  }
+
+  getTopPerformers(limit: number = 10) {
+    return this.client.get(`/leaderboard/top/${limit}`)
+  }
+
+  getMyRank() {
+    return this.client.get('/leaderboard/my-rank')
   }
 }
 

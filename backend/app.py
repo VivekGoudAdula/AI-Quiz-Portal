@@ -1,7 +1,7 @@
 import os
 from flask import Flask
 from flask_cors import CORS
-from flask_jwt_extended import JWTManager
+from flask_login import LoginManager
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -12,21 +12,26 @@ app = Flask(__name__)
 
 # Configuration
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
-app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'jwt-secret-key-change-in-production')
-app.config['JWT_ACCESS_TOKEN_EXPIRES'] = int(os.getenv('JWT_ACCESS_TOKEN_EXPIRES', 3600))
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///quiz_portal.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Enable CORS
 cors_origins = os.getenv('CORS_ORIGINS', 'http://localhost:5173,http://localhost:3000').split(',')
-CORS(app, resources={r"/api/*": {"origins": cors_origins}})
+CORS(app, resources={r"/api/*": {"origins": cors_origins, "supports_credentials": True}})
 
-# Initialize JWT
-jwt = JWTManager(app)
+# Initialize LoginManager
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'auth.login'
 
 # Initialize Database
 from database import db
 db.init_app(app)
+
+@login_manager.user_loader
+def load_user(user_id):
+    from database import User
+    return User.query.get(user_id)
 
 # Register Blueprints
 from routes.auth import auth_bp
@@ -35,6 +40,7 @@ from routes.attempts import attempts_bp
 from routes.proctoring import proctoring_bp
 from routes.instructor import instructor_bp
 from routes.admin import admin_bp
+from routes.leaderboard import leaderboard_bp
 
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
 app.register_blueprint(quizzes_bp, url_prefix='/api/quizzes')
@@ -42,6 +48,7 @@ app.register_blueprint(attempts_bp, url_prefix='/api/attempts')
 app.register_blueprint(proctoring_bp, url_prefix='/api/proctoring')
 app.register_blueprint(instructor_bp, url_prefix='/api/instructor')
 app.register_blueprint(admin_bp, url_prefix='/api/admin')
+app.register_blueprint(leaderboard_bp, url_prefix='/api/leaderboard')
 
 # Error handlers
 @app.errorhandler(404)

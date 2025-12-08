@@ -27,14 +27,14 @@ export default function LoginPage() {
     try {
       const response = await apiClient.login(formData.email, formData.password)
       console.log('Login response:', response)
-      const { user, access_token, token } = response.data
+      const { user } = response.data
       
-      if (!user || !access_token && !token) {
-        setError('Invalid response from server - missing user or token')
+      if (!user) {
+        setError('Invalid response from server - missing user')
         return
       }
       
-      login(user, access_token || token || '')
+      login(user)
 
       // Redirect based on role
       if (user.role === 'instructor') navigate('/instructor/dashboard')

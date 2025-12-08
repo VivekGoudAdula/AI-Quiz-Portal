@@ -1,8 +1,8 @@
-from flask import Blueprint, request, jsonify
-from flask_jwt_extended import create_access_token, get_jwt_identity, verify_jwt_in_request
+from flask import Blueprint, request, jsonify, session, redirect, url_for
+from flask_login import login_user, logout_user, login_required, current_user
 from database import db, User
 from utils.helpers import hash_password, verify_password
-from utils.decorators import token_required, validate_request_json
+from utils.decorators import validate_request_json
 import re
 
 auth_bp = Blueprint('auth', __name__)
@@ -63,13 +63,12 @@ def signup():
         db.session.add(new_user)
         db.session.commit()
         
-        # Generate access token
-        access_token = create_access_token(identity=new_user.id)
+        # Log in the user
+        login_user(new_user)
         
         return jsonify({
             'message': 'User registered successfully',
-            'user': new_user.to_dict(),
-            'access_token': access_token
+            'user': new_user.to_dict()
         }), 201
     except Exception as e:
         db.session.rollback()
@@ -95,82 +94,62 @@ def login():
         return jsonify({'error': 'Invalid email or password'}), 401
     
     try:
-        # Generate access token
-        access_token = create_access_token(identity=user.id)
+        # Log in the user
+        login_user(user)
         
         return jsonify({
             'message': 'Login successful',
-            'user': user.to_dict(),
-            'access_token': access_token
+            'user': user.to_dict()
         }), 200
     except Exception as e:
         return jsonify({'error': f'Login failed: {str(e)}'}), 500
 
 @auth_bp.route('/me', methods=['GET'])
-@token_required
 def get_current_user():
     """Get current user profile"""
-    try:
-        user_id = get_jwt_identity()
-        user = User.query.get(user_id)
-        
-        if not user:
-            return jsonify({'error': 'User not found'}), 404
-        
-        return jsonify({'user': user.to_dict()}), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    if current_user.is_authenticated:
+        return jsonify({'user': current_user.to_dict()}), 200
+    else:
+        return jsonify({'user': None}), 200
 
 @auth_bp.route('/profile', methods=['PUT'])
-@token_required
+@login_required
 @validate_request_json(['name'])
 def update_profile():
     """Update user profile"""
     try:
-        user_id = get_jwt_identity()
-        user = User.query.get(user_id)
-        
-        if not user:
-            return jsonify({'error': 'User not found'}), 404
-        
         data = request.get_json()
         
         if 'name' in data:
             name = data['name'].strip()
             if len(name) < 2:
                 return jsonify({'error': 'Name must be at least 2 characters long'}), 400
-            user.name = name
+            current_user.name = name
         
         if 'photo_url' in data:
-            user.photo_url = data['photo_url']
+            current_user.photo_url = data['photo_url']
         
         db.session.commit()
         return jsonify({
             'message': 'Profile updated successfully',
-            'user': user.to_dict()
+            'user': current_user.to_dict()
         }), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': f'Profile update failed: {str(e)}'}), 500
 
 @auth_bp.route('/change-password', methods=['POST'])
-@token_required
+@login_required
 @validate_request_json(['old_password', 'new_password'])
 def change_password():
     """Change user password"""
     try:
-        user_id = get_jwt_identity()
-        user = User.query.get(user_id)
-        
-        if not user:
-            return jsonify({'error': 'User not found'}), 404
-        
         data = request.get_json()
         old_password = data.get('old_password')
         new_password = data.get('new_password')
         
         # Verify old password
-        if not verify_password(old_password, user.password_hash):
+        if not verify_password(old_password, current_user.password_hash):
             return jsonify({'error': 'Current password is incorrect'}), 401
         
         # Validate new password
@@ -179,7 +158,7 @@ def change_password():
             return jsonify({'error': msg}), 400
         
         # Update password
-        user.password_hash = hash_password(new_password)
+        current_user.password_hash = hash_password(new_password)
         db.session.commit()
         
         return jsonify({'message': 'Password changed successfully'}), 200
@@ -188,7 +167,8 @@ def change_password():
         return jsonify({'error': f'Password change failed: {str(e)}'}), 500
 
 @auth_bp.route('/logout', methods=['POST'])
-@token_required
+@login_required
 def logout():
-    """User logout (client-side token deletion for now)"""
+    """User logout"""
+    logout_user()
     return jsonify({'message': 'Logout successful'}), 200

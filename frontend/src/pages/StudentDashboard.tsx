@@ -1,17 +1,58 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { useAuthStore } from '../store'
 import Layout from '../components/Layout'
 import { AssignedQuizzes } from '../components/AssignedQuizzes'
+import { apiClient } from '../api'
 import { Clock, BookOpen, CheckCircle, TrendingUp } from 'lucide-react'
 
 export default function StudentDashboard() {
   const { user } = useAuthStore()
+  const [stats, setStats] = useState({
+    available: 0,
+    completed: 0,
+    avgScore: 0,
+    totalTime: 0
+  })
+
+  useEffect(() => {
+    loadStats()
+  }, [])
+
+  const loadStats = async () => {
+    try {
+      const response = await apiClient.getAssignedQuizzes()
+      const quizzes = response.data.quizzes || []
+      
+      const now = new Date()
+      const available = quizzes.filter((q: any) => {
+        const start = new Date(q.startTime)
+        const end = new Date(q.endTime)
+        return start <= now && end > now
+      }).length
+      
+      const completed = quizzes.filter((q: any) => q.attempted).length
+      
+      const attemptedQuizzes = quizzes.filter((q: any) => q.attempted && q.score !== undefined)
+      const avgScore = attemptedQuizzes.length > 0 
+        ? attemptedQuizzes.reduce((sum: number, q: any) => sum + (q.score || 0), 0) / attemptedQuizzes.length
+        : 0
+      
+      setStats({
+        available,
+        completed,
+        avgScore: Math.round(avgScore),
+        totalTime: completed * 0.5 // Estimate 30 min per quiz
+      })
+    } catch (err) {
+      console.error('Failed to load stats:', err)
+    }
+  }
 
   const statCards = [
-    { label: 'Available Quizzes', value: '5', icon: BookOpen, color: 'from-blue-500 to-blue-600' },
-    { label: 'Completed', value: '3', icon: CheckCircle, color: 'from-green-500 to-green-600' },
-    { label: 'Avg Score', value: '85%', icon: TrendingUp, color: 'from-purple-500 to-purple-600' },
-    { label: 'Total Time', value: '4.5h', icon: Clock, color: 'from-orange-500 to-orange-600' },
+    { label: 'Available Quizzes', value: stats.available.toString(), icon: BookOpen, color: 'from-blue-500 to-blue-600' },
+    { label: 'Completed', value: stats.completed.toString(), icon: CheckCircle, color: 'from-green-500 to-green-600' },
+    { label: 'Avg Score', value: `${stats.avgScore}%`, icon: TrendingUp, color: 'from-purple-500 to-purple-600' },
+    { label: 'Total Time', value: `${stats.totalTime}h`, icon: Clock, color: 'from-orange-500 to-orange-600' },
   ]
 
   return (

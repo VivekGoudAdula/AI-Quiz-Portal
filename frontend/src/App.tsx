@@ -11,6 +11,7 @@ import InstructorDashboard from './pages/InstructorDashboard'
 import AdminDashboard from './pages/AdminDashboard'
 import QuizPlayerPage from './pages/QuizPlayerPage'
 import ResultPage from './pages/ResultPage'
+import LeaderboardPage from './pages/LeaderboardPage'
 
 // Components
 import ProtectedRoute from './components/ProtectedRoute'
@@ -49,6 +50,7 @@ export default function App() {
         <Route path="/quiz/:quizId" element={<ProtectedRoute requiredRole="student"><QuizPlayerPage /></ProtectedRoute>} />
         <Route path="/quiz/:quizId/results/:attemptId" element={<ProtectedRoute requiredRole="student"><ResultPage /></ProtectedRoute>} />
         <Route path="/quizzes" element={<ProtectedRoute requiredRole="student"><div>Quizzes (Coming soon)</div></ProtectedRoute>} />
+        <Route path="/leaderboard" element={<ProtectedRoute requiredRole="student"><LeaderboardPage /></ProtectedRoute>} />
         <Route path="/history" element={<ProtectedRoute requiredRole="student"><div>Attempt History (Coming soon)</div></ProtectedRoute>} />
 
         {/* Instructor Routes */}
