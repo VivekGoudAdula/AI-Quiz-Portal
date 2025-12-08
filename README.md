@@ -40,7 +40,7 @@ project-root/
     ├── tsconfig.json
     └── index.html
 
-**✨ Features
+**✨ Features 
 🔐 Authentication & Security**
 
 JWT-based authentication
@@ -168,5 +168,6 @@ Open a pull request
 📄**License**
 
 MIT License – free for personal and commercial use.
+
 
 
