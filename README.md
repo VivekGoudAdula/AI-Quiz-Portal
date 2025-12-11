@@ -3,13 +3,13 @@
 A modern, full-stack, web-based examination system with advanced proctoring, real-time analytics, adaptive difficulty support, and role-based functionality for students, instructors, and administrators.
 
 **📌 Overview**
-
+--
 This project provides a secure and scalable online exam platform designed for classrooms, universities, and corporate assessments.
 It includes anti-cheat features, adaptive difficulty systems, performance analytics, and a highly responsive React + TypeScript UI.
 
 📁 **Project Structure**
 project-root/
-├── backend/              # Flask REST API
+├── backend/             **# Flask REST API**
 │   ├── app.py           
 │   ├── database.py      
 │   ├── requirements.txt 
@@ -40,7 +40,7 @@ project-root/
     ├── tsconfig.json
     └── index.html
 
-**✨ Features
+**✨ Features 
 🔐 Authentication & Security**
 
 JWT-based authentication
@@ -127,7 +127,6 @@ Node.js ≥ 18
 PostgreSQL (optional, SQLite supported)
 
 🗄️ **Database Models**
-
 User
 Quiz
 Question
@@ -159,7 +158,6 @@ Multi-language support
 Offline mode
 
 🤝 **Contributing**
-
 Fork the repository
 Create a feature branch
 Commit your updates
@@ -168,5 +166,10 @@ Open a pull request
 📄**License**
 
 MIT License – free for personal and commercial use.
+
+-----------------------
+
+
+
 
 
