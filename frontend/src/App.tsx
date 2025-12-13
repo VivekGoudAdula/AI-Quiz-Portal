@@ -8,6 +8,9 @@ import LoginPage from './pages/LoginPage'
 import SignupPage from './pages/SignupPage'
 import StudentDashboard from './pages/StudentDashboard'
 import InstructorDashboard from './pages/InstructorDashboard'
+import InstructorQuizzesPage from './pages/InstructorQuizzesPage'
+import InstructorAnalyticsPage from './pages/InstructorAnalyticsPage'
+import InstructorProfilePage from './pages/InstructorProfilePage'
 import AdminDashboard from './pages/AdminDashboard'
 import QuizPlayerPage from './pages/QuizPlayerPage'
 import ResultPage from './pages/ResultPage'
@@ -56,12 +59,15 @@ export default function App() {
         <Route path="/leaderboard" element={<ProtectedRoute requiredRole="student"><LeaderboardPage /></ProtectedRoute>} />
         <Route path="/history" element={<ProtectedRoute requiredRole="student"><HistoryPage /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute requiredRole="student"><ProfilePage /></ProtectedRoute>} />
+        <Route path="/instructor/profile" element={<ProtectedRoute requiredRole="instructor"><ProfilePage /></ProtectedRoute>} />
 
         {/* Instructor Routes */}
         <Route path="/instructor/dashboard" element={<ProtectedRoute requiredRole="instructor"><InstructorDashboard /></ProtectedRoute>} />
-        <Route path="/instructor/quizzes" element={<ProtectedRoute requiredRole="instructor"><div>My Quizzes (Coming soon)</div></ProtectedRoute>} />
-        <Route path="/instructor/questions" element={<ProtectedRoute requiredRole="instructor"><div>Question Bank (Coming soon)</div></ProtectedRoute>} />
-        <Route path="/instructor/analytics" element={<ProtectedRoute requiredRole="instructor"><div>Analytics (Coming soon)</div></ProtectedRoute>} />
+        <Route path="/instructor/quizzes" element={<ProtectedRoute requiredRole="instructor"><InstructorQuizzesPage /></ProtectedRoute>} />
+        <Route path="/instructor/analytics" element={<ProtectedRoute requiredRole="instructor"><InstructorAnalyticsPage /></ProtectedRoute>} />
+
+        {/* Instructor Profile Route */}
+        <Route path="/instructor/profile" element={<ProtectedRoute requiredRole="instructor"><InstructorProfilePage /></ProtectedRoute>} />
 
         {/* Admin Routes */}
         <Route path="/admin/dashboard" element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />

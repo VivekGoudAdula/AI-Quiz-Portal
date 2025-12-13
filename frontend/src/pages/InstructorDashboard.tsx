@@ -4,9 +4,11 @@ import { apiClient } from '../api'
 import Layout from '../components/Layout'
 import { GenerateQuestions } from '../components/GenerateQuestions'
 import { AssignQuiz } from '../components/AssignQuiz'
-import { Plus, Edit2, Trash2, BarChart3, BookOpen, Users, TrendingUp, Clock, Zap, Send } from 'lucide-react'
+import { Plus, Edit2, Trash2, BarChart3, BookOpen, Users, TrendingUp, Clock, Zap, Send, UserCircle } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 
 export default function InstructorDashboard() {
+  const navigate = useNavigate();
   const { user } = useAuthStore()
   const [quizzes, setQuizzes] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -102,11 +104,21 @@ export default function InstructorDashboard() {
     <Layout>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-10">
-          <h1 className="text-5xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Welcome, {user?.name}! 📚
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 text-lg">Create and manage your quizzes</p>
+        <div className="mb-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-5xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Welcome, {user?.name}! 📚
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 text-lg">Create and manage your quizzes</p>
+          </div>
+          <button
+            onClick={() => navigate('/instructor/profile')}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow hover:from-blue-600 hover:to-purple-600 transition-all"
+            title="View Profile"
+          >
+            <UserCircle size={22} />
+            Profile
+          </button>
         </div>
 
         {/* Quick Stats */}
@@ -293,9 +305,12 @@ export default function InstructorDashboard() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {quizzes.map((quiz: any) => {
-                const now = Date.now()
-                const isActive = quiz.startTime <= now && quiz.endTime >= now
-                const isUpcoming = quiz.startTime > now
+                const now = Date.now();
+                const start = typeof quiz.startTime === 'string' ? new Date(quiz.startTime).getTime() : quiz.startTime;
+                const end = typeof quiz.endTime === 'string' ? new Date(quiz.endTime).getTime() : quiz.endTime;
+                const isCompleted = end < now;
+                const isUpcoming = start > now;
+                const isActive = start <= now && end >= now && !isCompleted;
                 return (
                   <div
                     key={quiz.quizId}
@@ -348,6 +363,7 @@ export default function InstructorDashboard() {
                       <div className="flex gap-2">
                         <button
                           title="View Analytics"
+                          onClick={() => navigate(`/instructor/analytics?quizId=${quiz.quizId}`)}
                           className="flex-1 p-2 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-lg transition font-medium flex items-center justify-center gap-2"
                         >
                           <BarChart3 size={18} />
@@ -355,6 +371,7 @@ export default function InstructorDashboard() {
                         </button>
                         <button
                           title="Edit Quiz"
+                          onClick={() => navigate(`/instructor/quizzes?edit=${quiz.quizId}`)}
                           className="flex-1 p-2 text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/40 rounded-lg transition font-medium flex items-center justify-center gap-2"
                         >
                           <Edit2 size={18} />

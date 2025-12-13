@@ -38,7 +38,6 @@ export default function Header() {
                 <>
                   <Link to="/instructor/dashboard" className="hover:text-blue-200 transition">Dashboard</Link>
                   <Link to="/instructor/quizzes" className="hover:text-blue-200 transition">My Quizzes</Link>
-                  <Link to="/instructor/questions" className="hover:text-blue-200 transition">Questions</Link>
                   <Link to="/instructor/analytics" className="hover:text-blue-200 transition">Analytics</Link>
                 </>
               )}
@@ -59,7 +58,7 @@ export default function Header() {
 
             {user ? (
               <div className="flex items-center gap-3">
-                <Link to="/profile" className="p-2 hover:bg-blue-700 rounded-lg transition" title="Profile">
+                <Link to={user.role === 'instructor' ? "/instructor/profile" : "/profile"} className="p-2 hover:bg-blue-700 rounded-lg transition" title="Profile">
                   {user.photoURL ? (
                     <img
                       src={user.photoURL}

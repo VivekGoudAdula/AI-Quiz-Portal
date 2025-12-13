@@ -140,9 +140,14 @@ export const AssignedQuizzes: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredQuizzes.map(quiz => {
             const qid = (quiz as any).quizId || (quiz as any).id;
-            const isActive = new Date(quiz.startTime) <= new Date() && new Date(quiz.endTime) > new Date();
-            const isUpcoming = new Date(quiz.startTime) > new Date();
-            const isCompleted = new Date(quiz.endTime) <= new Date();
+
+            // Fix: After due date, quiz is not active
+            const now = new Date();
+            const start = new Date(quiz.startTime);
+            const end = new Date(quiz.endTime);
+            const isCompleted = end < now;
+            const isUpcoming = start > now;
+            const isActive = start <= now && end >= now && !isCompleted;
 
             return (
               <div
