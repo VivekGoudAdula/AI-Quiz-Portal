@@ -27,7 +27,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 
 # Enable CORS
-cors_origins = os.getenv('CORS_ORIGINS', 'http://localhost:5173,http://localhost:3000').split(',')
+cors_origins = os.getenv('CORS_ORIGINS', 'http://localhost:5173,http://localhost:3000,https://ai-quiz-portal-rosy.vercel.app').split(',')
 CORS(app, resources={r"/api/*": {"origins": cors_origins, "supports_credentials": True}})
 
 # Initialize LoginManager
