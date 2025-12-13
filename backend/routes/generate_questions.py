@@ -3,7 +3,7 @@ from flask import Blueprint, request, jsonify
 import google.generativeai as genai
 
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
-client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else genai.Client()
+genai.configure(api_key=GEMINI_API_KEY)
 
 generate_questions_bp = Blueprint('generate_questions', __name__)
 
