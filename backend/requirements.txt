@@ -17,7 +17,6 @@ Flask-SQLAlchemy
 python-dotenv
 gunicorn
 # Add any other packages you use (e.g., requests, etc.)
-fcntl
 google-generativeai
 google-api-python-client
 google-auth
