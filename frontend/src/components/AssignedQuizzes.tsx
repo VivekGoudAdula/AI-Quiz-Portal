@@ -19,6 +19,7 @@ interface Quiz {
   };
   attempted?: boolean;
   score?: number;
+  attemptId?: string;
 }
 
 export const AssignedQuizzes: React.FC = () => {

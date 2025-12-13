@@ -31,9 +31,9 @@ export default function App() {
       try {
         const response = await apiClient.getCurrentUser()
         const { user } = response.data
-        if (user && !user) {
+        if (user) {
           // User is already logged in, update store
-          login(user, localStorage.getItem('auth-storage') || '')
+          login(user)
         }
       } catch (err) {
         // User not logged in or session expired
