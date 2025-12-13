@@ -10,3 +10,14 @@ requests==2.31.0
 python-dateutil==2.8.2
 Pillow==11.0.0
 gunicorn==21.2.0
+Flask
+Flask-Cors
+Flask-Login
+Flask-SQLAlchemy
+python-dotenv
+gunicorn
+# Add any other packages you use (e.g., requests, etc.)
+fcntl
+google-generativeai
+google-api-python-client
+google-auth

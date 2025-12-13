@@ -1,7 +1,7 @@
 
 import axios, { AxiosInstance } from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://devserver-main--tourmaline-sprite-523e11.netlify.app/api'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://ai-quiz-portal.onrender.com/api'
 
 class APIClient {
     getInstructorDashboardStats() {
