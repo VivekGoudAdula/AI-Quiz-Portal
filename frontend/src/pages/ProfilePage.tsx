@@ -1,7 +1,7 @@
 // ...existing code...
 
 
-import React, { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Layout from '../components/Layout';
 import { useAuthStore } from '../store';
 import { apiClient } from '../api';
@@ -54,7 +54,13 @@ export default function ProfilePage() {
       // For now, just use a local preview
       const uploadedUrl = photoURL;
       await apiClient.updateProfile(name, uploadedUrl);
-      setUser({ ...user, name, photoURL: uploadedUrl });
+      if (user) setUser({
+        ...user,
+        name,
+        photoURL: uploadedUrl,
+        id: user.id || '',
+        email: user.email || '',
+      });
       setSuccess('Profile photo updated!');
     } catch (err: any) {
       setError('Failed to upload photo.');
@@ -70,7 +76,13 @@ export default function ProfilePage() {
     setSuccess('');
     try {
       await apiClient.updateProfile(name, photoURL);
-      setUser({ ...user, name, photoURL });
+      if (user) setUser({
+        ...user,
+        name,
+        photoURL,
+        id: user.id || '',
+        email: user.email || '',
+      });
       setSuccess('Profile updated!');
     } catch (err: any) {
       setError('Failed to update profile.');

@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
 import { apiClient } from '../api';
 import { BookOpen, Users, TrendingUp, Clock } from 'lucide-react';
@@ -35,7 +35,7 @@ export default function InstructorAnalyticsPage() {
           <div className="text-red-500 text-center font-semibold">{error}</div>
         ) : stats ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {statCards.map((stat, idx) => {
+            {statCards.map((stat) => {
               const Icon = stat.icon;
               return (
                 <div key={stat.label} className={`rounded-2xl shadow-xl bg-gradient-to-br ${stat.color} p-8 flex flex-col items-center justify-center text-white hover:scale-[1.03] transition-transform duration-200`}>

@@ -1,8 +1,8 @@
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
 import { apiClient } from '../api';
-import { BookOpen, Clock, Users, TrendingUp, CheckCircle, Calendar, Zap } from 'lucide-react';
+import { BookOpen, Clock, Users, TrendingUp, Calendar } from 'lucide-react';
 
 export default function InstructorQuizzesPage() {
   const [quizzes, setQuizzes] = useState<any[]>([]);
@@ -12,7 +12,7 @@ export default function InstructorQuizzesPage() {
   useEffect(() => {
     apiClient.getQuizzes('all')
       .then(res => setQuizzes(res.data.quizzes || []))
-      .catch(err => setError('Failed to load quizzes'))
+      .catch(() => setError('Failed to load quizzes'))
       .finally(() => setLoading(false));
   }, []);
 

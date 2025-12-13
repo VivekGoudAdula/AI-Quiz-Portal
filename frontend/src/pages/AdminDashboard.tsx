@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react'
-import { useAuthStore } from '../store'
+import { useEffect, useState } from 'react'
+
 import { apiClient } from '../api'
 import Layout from '../components/Layout'
 import { Users, AlertCircle, BarChart3, RefreshCw, Database, TrendingUp, Lock } from 'lucide-react'
 
 export default function AdminDashboard() {
-  const { user } = useAuthStore()
+
   const [analytics, setAnalytics] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [flaggedAttempts, setFlaggedAttempts] = useState([])

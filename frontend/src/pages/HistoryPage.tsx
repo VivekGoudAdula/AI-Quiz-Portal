@@ -1,6 +1,6 @@
 // ...existing code...
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
 import { useAuthStore } from '../store';
 import { apiClient } from '../api';

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import Layout from '../components/Layout'
 import { apiClient } from '../api'
 import { Trophy, Medal, Crown, TrendingUp, Star } from 'lucide-react'

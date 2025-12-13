@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useAuthStore } from '../store'
+
 import { apiClient } from '../api'
 import Layout from '../components/Layout'
 import AttemptProctoringLog from '../components/AttemptProctoringLog'
@@ -38,9 +38,9 @@ interface ResultData {
 }
 
 export default function ResultPage() {
-  const { quizId, attemptId } = useParams()
+  const { attemptId } = useParams()
   const navigate = useNavigate()
-  const { user } = useAuthStore()
+
 
   const [result, setResult] = useState<ResultData | null>(null)
   const [loading, setLoading] = useState(true)
