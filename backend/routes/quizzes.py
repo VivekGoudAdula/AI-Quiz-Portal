@@ -66,8 +66,8 @@ def create_quiz():
             return jsonify({'error': 'Quiz title must be at least 3 characters'}), 400
         
         try:
-            start_time = datetime.fromtimestamp(data['startTime'] / 1000)
-            end_time = datetime.fromtimestamp(data['endTime'] / 1000)
+            start_time = datetime.utcfromtimestamp(data['startTime'] / 1000)
+            end_time = datetime.utcfromtimestamp(data['endTime'] / 1000)
             print(f"[DEBUG] Start time: {start_time}, End time: {end_time}")
         except (ValueError, TypeError) as e:
             print(f"[ERROR] Timestamp conversion failed: {e}")

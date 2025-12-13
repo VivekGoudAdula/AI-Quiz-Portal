@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store'
 import { apiClient } from '../api'
 import Layout from '../components/Layout'
+import AttemptProctoringLog from '../components/AttemptProctoringLog'
 import { Download, BarChart3, Clock, CheckCircle, XCircle, Flag, Share2, Home } from 'lucide-react'
 
 interface Question {
@@ -53,6 +54,8 @@ export default function ResultPage() {
   const finalScore = result && typeof result.finalScore === 'number' ? result.finalScore : 0;
   const totalMarks = result && typeof result.totalMarks === 'number' ? result.totalMarks : 0;
   const suspicionScore = result && typeof result.suspicionScore === 'number' ? result.suspicionScore : 0;
+  // Security score: higher is better (based only on proctoring)
+  const securityScore = Math.max(0, Math.min(1, 1 - suspicionScore));
   const warnings = result && typeof result.warnings === 'number' ? result.warnings : 0;
   const startTime = result && typeof result.startTime === 'number' ? result.startTime : null;
   const endTime = result && typeof result.endTime === 'number' ? result.endTime : null;
@@ -104,7 +107,7 @@ export default function ResultPage() {
     )
   }
 
-  const percentage = totalMarks > 0 ? Math.round((finalScore / totalMarks) * 100) : 0;
+  const percentage = totalMarks > 0 ? Math.min(100, Math.round((finalScore / totalMarks) * 100)) : 0;
   const timeTaken = startTime !== null && endTime !== null ? Math.floor((endTime - startTime) / 1000) : 0;
   const minutes = !isNaN(timeTaken) ? Math.floor(timeTaken / 60) : 0;
   const seconds = !isNaN(timeTaken) ? timeTaken % 60 : 0;
@@ -237,9 +240,9 @@ export default function ResultPage() {
                 <div>
                   <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">SECURITY SCORE</p>
                   <p className={`text-3xl font-bold mt-2 ${
-                    suspicionScore < 0.3 ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'
+                    securityScore >= 0.7 ? 'text-green-600 dark:text-green-400' : securityScore >= 0.4 ? 'text-orange-600 dark:text-orange-400' : 'text-red-600 dark:text-red-400'
                   }`}>
-                    {(suspicionScore * 100).toFixed(0)}%
+                    {(securityScore * 100).toFixed(0)}%
                   </p>
                 </div>
                 <Flag size={32} className="opacity-20" />
@@ -455,6 +458,9 @@ export default function ResultPage() {
               Share Results
             </button>
           </div>
+
+          {/* Proctoring Violation Timeline */}
+          <AttemptProctoringLog attemptId={attemptId!} />
 
           {/* Footer Info */}
           <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-6 text-center text-sm text-gray-600 dark:text-gray-400">

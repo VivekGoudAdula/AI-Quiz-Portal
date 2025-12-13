@@ -12,6 +12,7 @@ from routes.proctoring import proctoring_bp
 from routes.instructor import instructor_bp
 from routes.admin import admin_bp
 from routes.leaderboard import leaderboard_bp
+from routes.generate_questions import generate_questions_bp
 
 # Load environment variables
 load_dotenv()
@@ -64,6 +65,7 @@ app.register_blueprint(proctoring_bp, url_prefix='/api/proctoring')
 app.register_blueprint(instructor_bp, url_prefix='/api/instructor')
 app.register_blueprint(admin_bp, url_prefix='/api/admin')
 app.register_blueprint(leaderboard_bp, url_prefix='/api/leaderboard')
+app.register_blueprint(generate_questions_bp, url_prefix='/api')
 
 # Error handlers
 @app.errorhandler(404)

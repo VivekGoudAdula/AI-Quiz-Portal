@@ -44,7 +44,25 @@ export const GenerateQuestions: React.FC<GenerateQuestionsProps> = ({
         difficulty
       );
 
-      const questions = response.data.questions;
+
+      // Try to parse Gemini response as a JSON array of MCQs
+      let questions = response.data.questions;
+      if (!questions && response.data.question) {
+        let qText = response.data.question.trim();
+        try {
+          // Remove any non-JSON prefix/suffix if present
+          const jsonStart = qText.indexOf('[');
+          const jsonEnd = qText.lastIndexOf(']') + 1;
+          if (jsonStart !== -1 && jsonEnd !== -1) {
+            qText = qText.substring(jsonStart, jsonEnd);
+          }
+          questions = JSON.parse(qText);
+        } catch (e) {
+          // Fallback: treat as a single question in text
+          questions = [{ text: qText }];
+        }
+      }
+      if (!Array.isArray(questions)) questions = [questions];
       console.log(`Generated ${questions.length} questions for quiz: ${selectedQuizId}`);
       onQuestionsGenerated(questions);
 
@@ -55,33 +73,35 @@ export const GenerateQuestions: React.FC<GenerateQuestionsProps> = ({
       for (let idx = 0; idx < questions.length; idx++) {
         const q = questions[idx];
         try {
-          console.log(`[${idx + 1}/${questions.length}] Creating question:`, q.text?.substring(0, 50));
-          
-          // Build options array
-          const options = (q.options || []).map((opt: any) => ({
-            text: typeof opt === 'string' ? opt : (opt.text || opt.option || ''),
-            isCorrect: opt.is_correct === true || opt.isCorrect === true
-          }));
-          
+          // Map Gemini's format to backend format
+          const questionText = q.text || q.question || '';
+          let options: any[] = [];
+          if (Array.isArray(q.options) && q.correct_answer) {
+            options = q.options.map((opt: string) => ({
+              text: opt,
+              isCorrect: opt === q.correct_answer
+            }));
+          } else if (Array.isArray(q.options)) {
+            options = q.options.map((opt: any) => ({
+              text: typeof opt === 'string' ? opt : (opt.text || opt.option || ''),
+              isCorrect: opt.is_correct === true || opt.isCorrect === true
+            }));
+          }
+          console.log(`[${idx + 1}/${questions.length}] Creating question:`, questionText.substring(0, 50));
           console.log(`[${idx + 1}/${questions.length}] Options:`, options);
-          
           const payload = {
-            text: q.text || q.question || '',
+            text: questionText,
             type: 'mcq',
             difficulty: q.difficulty || difficulty,
             marks: 1,
             tags: [],
-            explanation: '',
+            explanation: q.explanation || '',
             options: options
           };
-          
           console.log(`[${idx + 1}/${questions.length}] Payload:`, payload);
-          
           const createQRes = await apiClient.createQuestion(payload);
-
           console.log(`[${idx + 1}/${questions.length}] ✓ Question created:`, createQRes.data?.question?.qId);
           const questionId = createQRes.data?.question?.qId;
-          
           if (questionId) {
             console.log(`[${idx + 1}/${questions.length}] Adding to quiz ${selectedQuizId}...`);
             await apiClient.addQuestionToQuiz(selectedQuizId, questionId);
@@ -106,10 +126,7 @@ export const GenerateQuestions: React.FC<GenerateQuestionsProps> = ({
         setError(`❌ Failed to add questions. Check console (F12) for details.`);
       }
       onQuestionsAdded?.(successCount);
-      // Force reload quizzes after assignment to update UI
-      if (window.location.pathname.includes('instructor')) {
-        setTimeout(() => window.location.reload(), 1000);
-      }
+      // Optionally, you can trigger a callback or state update here if needed, but do not reload the page.
       
       // Reset form
       setTopic('');

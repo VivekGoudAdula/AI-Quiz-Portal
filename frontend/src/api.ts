@@ -121,12 +121,14 @@ class APIClient {
 
   // Proctoring endpoints
   logProctoringEvent(attemptId: string, eventType: string, meta?: any, severity?: string) {
-    return this.client.post(`/proctoring/${attemptId}/event`, {
+    const payload = {
       eventType,
       timestamp: Date.now(),
       meta,
       severity,
-    })
+    };
+    console.log('[API] logProctoringEvent payload:', payload);
+    return this.client.post(`/proctoring/${attemptId}/event`, payload);
   }
 
   getProctoringEvents(attemptId: string) {
@@ -209,11 +211,16 @@ class APIClient {
 
   // Question Generation endpoints
   generateAIQuestions(topic: string, numQuestions: number, difficulty: string) {
-    return this.client.post('/quizzes/generate/questions', {
-      topic,
-      numQuestions,
-      difficulty,
-    })
+    // Compose a prompt for Gemini to return a JSON array of MCQs
+    const prompt = `Generate ${numQuestions} unique multiple choice questions on the topic '${topic}' with ${difficulty} difficulty. 
+Return ONLY a JSON array, where each element is an object with the following fields: 'question', 'options' (an array of 4 strings), 'correct_answer' (the exact string from options), and 'explanation'.
+Example:
+[
+  {"question": "What is 2+2?", "options": ["1", "2", "3", "4"], "correct_answer": "4", "explanation": "2+2=4."},
+  ...
+]
+Do not include any text or formatting outside the JSON array.`;
+    return this.client.post('/generate-questions', { prompt });
   }
 
   // Quiz Assignment endpoints
