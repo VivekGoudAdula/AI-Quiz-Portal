@@ -1,7 +1,7 @@
 
 import axios, { AxiosInstance } from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://devserver-main--tourmaline-sprite-523e11.netlify.app/api'
 
 class APIClient {
     getInstructorDashboardStats() {
