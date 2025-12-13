@@ -14,10 +14,8 @@ def generate_questions():
     if not prompt or not prompt.strip():
         return jsonify({"error": "Prompt (topic) is required."}), 400
     try:
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt
-        )
+        model = genai.GenerativeModel("gemini-2.5-flash")
+        response = model.generate_content(prompt)
         return jsonify({"question": response.text})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
