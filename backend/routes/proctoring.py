@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import get_jwt_identity
+from flask import g
 from database import db, ProctoringEvent, Attempt
 from utils.decorators import token_required, validate_request_json
 from datetime import datetime

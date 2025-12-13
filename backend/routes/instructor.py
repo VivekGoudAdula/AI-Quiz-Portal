@@ -1,10 +1,11 @@
+
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import get_jwt_identity
-from database import db, Question, QuestionOption, User
+from flask_login import current_user
+from database import db, Question, QuestionOption
 from utils.decorators import token_required, role_required, validate_request_json
-from datetime import datetime
 
 instructor_bp = Blueprint('instructor', __name__)
+
 
 @instructor_bp.route('/questions', methods=['POST'])
 @token_required
@@ -13,7 +14,7 @@ instructor_bp = Blueprint('instructor', __name__)
 def create_question():
     """Create new question"""
     try:
-        user_id = get_jwt_identity()
+        user_id = current_user.id
         data = request.get_json()
         
         print(f"[DEBUG] Received question data: {data}")
@@ -96,7 +97,7 @@ def get_question(question_id):
 def update_question(question_id):
     """Update question"""
     try:
-        user_id = get_jwt_identity()
+        user_id = current_user.id
         question = Question.query.get(question_id)
         
         if not question:
@@ -162,7 +163,7 @@ def update_question(question_id):
 def delete_question(question_id):
     """Delete question"""
     try:
-        user_id = get_jwt_identity()
+        user_id = current_user.id
         question = Question.query.get(question_id)
         
         if not question:
@@ -185,7 +186,7 @@ def delete_question(question_id):
 def list_questions():
     """List user's questions with filtering"""
     try:
-        user_id = get_jwt_identity()
+        user_id = current_user.id
         difficulty = request.args.get('difficulty')
         tag = request.args.get('tag')
         
@@ -212,9 +213,9 @@ def list_questions():
 def get_quiz_analytics(quiz_id):
     """Get detailed analytics for a quiz"""
     try:
-        from database import Quiz, Attempt, Answer
+        from database import Quiz, Attempt
         
-        user_id = get_jwt_identity()
+        user_id = current_user.id
         quiz = Quiz.query.get(quiz_id)
         
         if not quiz:
@@ -281,6 +282,38 @@ def get_quiz_analytics(quiz_id):
             'averageScore': round(average_score, 2),
             'passPercentage': round(pass_percentage, 2),
             'performance': sorted(performance, key=lambda x: x['accuracy'])
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@instructor_bp.route('/dashboard-stats', methods=['GET'])
+@token_required
+@role_required('instructor', 'admin')
+def get_dashboard_stats():
+    """Return instructor dashboard stats: total quizzes, total students, avg performance, active quizzes"""
+    user_id = current_user.id
+    from datetime import datetime
+    now = datetime.utcnow()
+    quizzes = db.session.query(Question).filter_by(created_by_id=user_id).all()
+    # If you have a Quiz model, use Quiz.query.filter_by(created_by_id=user_id).all()
+    try:
+        from database import Quiz, Attempt
+        quizzes = Quiz.query.filter_by(created_by_id=user_id).all()
+        total_quizzes = len(quizzes)
+        quiz_ids = [q.id for q in quizzes]
+        student_ids = set()
+        attempts = Attempt.query.filter(Attempt.quiz_id.in_(quiz_ids), Attempt.is_submitted==True).all()
+        for a in attempts:
+            student_ids.add(a.user_id)
+        total_students = len(student_ids)
+        scores = [a.final_score/a.total_marks*100 for a in attempts if a.final_score is not None and a.total_marks]
+        avg_performance = round(sum(scores)/len(scores), 2) if scores else 0
+        active_quizzes = sum(1 for q in quizzes if q.start_time <= now <= q.end_time)
+        return jsonify({
+            'totalQuizzes': total_quizzes,
+            'totalStudents': total_students,
+            'avgPerformance': avg_performance,
+            'activeQuizzes': active_quizzes
         }), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500

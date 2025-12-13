@@ -54,7 +54,6 @@ def seed_quizzes():
                 shuffle_options=False,
                 adaptive=False,
                 proctoring_enabled=False,
-                max_attempts=1,
                 passing_score=60.0
             )
             db.session.add(quiz)

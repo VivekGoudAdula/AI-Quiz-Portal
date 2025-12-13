@@ -211,21 +211,29 @@ export const AssignedQuizzes: React.FC = () => {
                   </div>
 
                   {/* Action Button */}
-                  <button
-                    onClick={() => handleStartQuiz(qid)}
-                    disabled={isUpcoming || isCompleted}
-                    className={`w-full py-2 rounded-lg font-semibold transition-all ${
-                      isActive
-                        ? 'bg-gradient-to-r from-green-600 to-blue-600 text-white hover:shadow-lg'
-                        : isUpcoming
-                        ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                        : quiz.attempted
-                        ? 'bg-blue-600 text-white hover:shadow-lg'
-                        : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                    }`}
-                  >
-                    {isUpcoming ? 'Coming Soon' : isActive ? 'Take Quiz Now' : quiz.attempted ? 'View Results' : 'Quiz Ended'}
-                  </button>
+                  {quiz.attempted ? (
+                    <button
+                      onClick={() => quiz.attemptId && navigate(`/quiz/${qid}/results/${quiz.attemptId}`)}
+                      className="w-full py-2 rounded-lg font-semibold bg-blue-600 text-white hover:shadow-lg transition-all"
+                      disabled={!quiz.attemptId}
+                    >
+                      View Results
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleStartQuiz(qid)}
+                      disabled={isUpcoming || isCompleted}
+                      className={`w-full py-2 rounded-lg font-semibold transition-all ${
+                        isActive
+                          ? 'bg-gradient-to-r from-green-600 to-blue-600 text-white hover:shadow-lg'
+                          : isUpcoming
+                          ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                          : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                      }`}
+                    >
+                      {isUpcoming ? 'Coming Soon' : isActive ? 'Take Quiz Now' : 'Quiz Ended'}
+                    </button>
+                  )}
                 </div>
               </div>
             );

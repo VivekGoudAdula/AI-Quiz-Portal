@@ -106,6 +106,10 @@ export const GenerateQuestions: React.FC<GenerateQuestionsProps> = ({
         setError(`❌ Failed to add questions. Check console (F12) for details.`);
       }
       onQuestionsAdded?.(successCount);
+      // Force reload quizzes after assignment to update UI
+      if (window.location.pathname.includes('instructor')) {
+        setTimeout(() => window.location.reload(), 1000);
+      }
       
       // Reset form
       setTopic('');

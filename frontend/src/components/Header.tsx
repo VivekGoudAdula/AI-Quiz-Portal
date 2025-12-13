@@ -60,7 +60,17 @@ export default function Header() {
             {user ? (
               <div className="flex items-center gap-3">
                 <Link to="/profile" className="p-2 hover:bg-blue-700 rounded-lg transition" title="Profile">
-                  <User size={20} />
+                  {user.photoURL ? (
+                    <img
+                      src={user.photoURL}
+                      alt="Profile"
+                      className="w-8 h-8 rounded-full object-cover border-2 border-white shadow"
+                    />
+                  ) : (
+                    <span className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center border-2 border-white shadow">
+                      <User size={20} className="text-gray-400" />
+                    </span>
+                  )}
                 </Link>
                 <button onClick={handleLogout} className="p-2 hover:bg-blue-700 rounded-lg transition" title="Logout">
                   <LogOut size={20} />

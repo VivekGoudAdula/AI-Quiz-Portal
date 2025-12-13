@@ -5,6 +5,29 @@ import uuid
 
 db = SQLAlchemy()
 
+class QuizAssignment(db.Model):
+    __tablename__ = 'quiz_assignments'
+    id = db.Column(db.Integer, primary_key=True)
+    quiz_id = db.Column(db.String(36), db.ForeignKey('quizzes.id'), nullable=False)
+    student_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
+    assigned_by_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
+    assigned_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    due_date = db.Column(db.DateTime, nullable=True)
+
+    quiz = db.relationship('Quiz', backref='assignments', foreign_keys=[quiz_id])
+    student = db.relationship('User', foreign_keys=[student_id])
+    assigned_by = db.relationship('User', foreign_keys=[assigned_by_id])
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'quiz_id': self.quiz_id,
+            'student_id': self.student_id,
+            'assigned_by_id': self.assigned_by_id,
+            'assigned_at': int(self.assigned_at.timestamp() * 1000),
+            'due_date': int(self.due_date.timestamp() * 1000) if self.due_date else None
+        }
+
 class User(db.Model, UserMixin):
     __tablename__ = 'users'
     
@@ -47,7 +70,6 @@ class Quiz(db.Model):
     shuffle_options = db.Column(db.Boolean, default=False)
     adaptive = db.Column(db.Boolean, default=False)
     proctoring_enabled = db.Column(db.Boolean, default=False)
-    max_attempts = db.Column(db.Integer, default=1)
     passing_score = db.Column(db.Float, default=40.0)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -69,7 +91,6 @@ class Quiz(db.Model):
             'shuffleOptions': self.shuffle_options,
             'adaptive': self.adaptive,
             'proctoringEnabled': self.proctoring_enabled,
-            'maxAttempts': self.max_attempts,
             'passingScore': self.passing_score,
             'questionIds': [q.id for q in self.questions]
         }
@@ -150,6 +171,8 @@ class Attempt(db.Model):
     answers = db.relationship('Answer', backref='attempt', lazy=True, cascade='all, delete-orphan')
     proctor_events = db.relationship('ProctoringEvent', backref='attempt', lazy=True, cascade='all, delete-orphan')
     
+    assigned_question_ids = db.Column(db.JSON, nullable=True)  # List of question IDs assigned at attempt start
+
     def to_dict(self):
         return {
             'attemptId': self.id,
@@ -161,7 +184,8 @@ class Attempt(db.Model):
             'totalMarks': self.total_marks,
             'warnings': self.warnings,
             'suspicionScore': self.suspicion_score,
-            'isSubmitted': self.is_submitted
+            'isSubmitted': self.is_submitted,
+            'assignedQuestionIds': self.assigned_question_ids
         }
 
 

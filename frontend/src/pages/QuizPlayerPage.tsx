@@ -21,16 +21,24 @@ interface Answer {
 }
 
 export default function QuizPlayerPage() {
-  const { quizId } = useParams()
-  const navigate = useNavigate()
-  const { user } = useAuthStore()
-
   // Quiz & Question Data
   const [quiz, setQuiz] = useState<any>(null)
   const [questions, setQuestions] = useState<Question[]>([])
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+
+
+  const { quizId } = useParams()
+  const navigate = useNavigate()
+  const { user } = useAuthStore()
+
+  // Ensure currentQuestionIndex is always valid when questions change
+  useEffect(() => {
+    if (questions.length > 0 && (currentQuestionIndex < 0 || currentQuestionIndex >= questions.length)) {
+      setCurrentQuestionIndex(0);
+    }
+  }, [questions]);
 
   // Timer & Timestamps
   const [timeRemaining, setTimeRemaining] = useState(0)
@@ -72,20 +80,25 @@ export default function QuizPlayerPage() {
     try {
       setLoading(true)
 
-      // Get quiz details
+      // Get quiz details (includes questions)
       const quizResponse = await apiClient.getQuizDetail(quizId!)
-      setQuiz(quizResponse.data)
-
-      // Get questions
-      const questionsResponse = await apiClient.getQuizQuestions(quizId!)
-      setQuestions(questionsResponse.data.questions || [])
+      const quizData = quizResponse.data.quiz || quizResponse.data
+      // Map qId to id for frontend compatibility
+      let questions = (quizData.questions || []).map((q: any) => ({
+        ...q,
+        id: q.id || q.qId, // prefer id, fallback to qId
+      }));
+      console.log('Loaded quizData.questions:', questions);
+      setQuiz(quizData)
+      setQuestions(questions)
+      setCurrentQuestionIndex(0)
 
       // Start attempt
       const attemptResponse = await apiClient.startQuizAttempt(quizId!)
       setAttemptId(attemptResponse.data.attemptId)
 
       // Set timer (convert seconds to milliseconds)
-      setTimeRemaining(quizResponse.data.durationSeconds)
+      setTimeRemaining(quizData.durationSeconds)
       setQuestionStartTime(Date.now())
     } catch (err) {
       console.error('Failed to load quiz:', err)
@@ -97,27 +110,49 @@ export default function QuizPlayerPage() {
   }
 
   const currentQuestion = questions[currentQuestionIndex]
-  const currentAnswer = answers.get(currentQuestion?.id) || { answer: '', timeSpent: 0 }
+  let currentAnswer = { answer: '', timeSpent: 0 };
+  if (currentQuestion && currentQuestion.id) {
+    const found = answers.get(currentQuestion.id);
+    if (found) currentAnswer = found;
+  }
+  // Only log if currentQuestion is valid
+  if (currentQuestion && currentQuestion.id) {
+    console.log('Current answer for question', currentQuestion.id, ':', currentAnswer);
+  }
 
   // Update answer for current question
   const handleAnswerChange = (value: string | string[]) => {
-    if (!currentQuestion) return
+    if (!currentQuestion || !currentQuestion.id) {
+      console.warn('handleAnswerChange called with no valid currentQuestion');
+      return;
+    }
 
-    const timeSpent = Math.floor((Date.now() - questionStartTime) / 1000)
-    const newAnswers = new Map(answers)
-    newAnswers.set(currentQuestion.id, { questionId: currentQuestion.id, answer: value, timeSpent })
-    setAnswers(newAnswers)
+    // For MCQ/TF, always store answer as string
+    let answerValue: string | string[] = value;
+    if ((currentQuestion.type === 'mcq' || currentQuestion.type === 'tf') && Array.isArray(value)) {
+      answerValue = value[0] || '';
+    }
 
-    // Autosave
-    autoSaveAnswer(currentQuestion.id, value)
+    const timeSpent = Math.floor((Date.now() - questionStartTime) / 1000);
+    setAnswers(prev => {
+      const updated = new Map(prev);
+      updated.set(currentQuestion.id, { questionId: currentQuestion.id, answer: answerValue, timeSpent });
+      // Autosave with the latest value
+      autoSaveAnswer(currentQuestion.id, answerValue, timeSpent);
+      return updated;
+    });
   }
 
-  const autoSaveAnswer = async (questionId: string, answer: string | string[]) => {
+  const autoSaveAnswer = async (questionId: string, answer: string | string[], timeSpent?: number) => {
     try {
-      await apiClient.saveQuizAnswer(attemptId, {
+      const payload = {
         questionId,
         answer: Array.isArray(answer) ? answer.join(',') : answer,
-      })
+        timeSpent: timeSpent || 0,
+        markedForReview: flaggedQuestions.has(questionId),
+      };
+      console.log('AutoSave Payload:', payload);
+      await apiClient.saveQuizAnswer(attemptId, payload);
     } catch (err) {
       console.error('Autosave failed:', err)
     }
@@ -149,7 +184,19 @@ export default function QuizPlayerPage() {
       // Save all answers one more time
       const answersArray = Array.from(answers.values())
       for (const ans of answersArray) {
-        await apiClient.saveQuizAnswer(attemptId, ans)
+        // Skip if questionId or answer is empty/null/undefined
+        if (!ans.questionId || ans.answer === undefined || ans.answer === null || ans.answer === '') {
+          console.warn('Skipping empty answer:', ans)
+          continue;
+        }
+        const payload = {
+          questionId: ans.questionId,
+          answer: ans.answer,
+          timeSpent: ans.timeSpent || 0,
+          markedForReview: flaggedQuestions.has(ans.questionId),
+        };
+        console.log('Saving answer:', payload);
+        await apiClient.saveQuizAnswer(attemptId, payload)
       }
 
       // Submit quiz
@@ -260,94 +307,99 @@ export default function QuizPlayerPage() {
         {/* Left: Question */}
         <div className="flex-1 overflow-y-auto p-8 border-r border-gray-200 dark:border-gray-700">
           <div className="max-w-3xl mx-auto">
-            {/* Question Header */}
-            <div className="mb-8">
-              <div className="flex items-start justify-between mb-4">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {currentQuestion.text}
-                </h2>
-                <button
-                  onClick={toggleFlagQuestion}
-                  className={`p-3 rounded-lg transition ${
-                    flaggedQuestions.has(currentQuestion.id)
-                      ? 'bg-orange-100 dark:bg-orange-900 text-orange-600 dark:text-orange-300'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:text-orange-600'
-                  }`}
-                  title="Mark for review"
-                >
-                  <Flag size={20} fill={flaggedQuestions.has(currentQuestion.id) ? 'currentColor' : 'none'} />
-                </button>
+            {/* Question Header and Options */}
+            {questions.length === 0 || !currentQuestion ? (
+              <div className="text-center text-gray-500 dark:text-gray-400 text-xl py-16">
+                No questions available for this quiz.
               </div>
-
-              <div className="flex items-center gap-4 text-sm">
-                <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-full font-medium">
-                  {currentQuestion.type.toUpperCase()}
-                </span>
-                <span className="text-gray-600 dark:text-gray-400">
-                  Marks: {currentQuestion.marks}
-                </span>
-                <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded-full font-medium capitalize">
-                  {currentQuestion.difficulty}
-                </span>
-              </div>
-            </div>
-
-            {/* Question Options */}
-            <div className="space-y-4">
-              {currentQuestion.type === 'mcq' && currentQuestion.options && (
-                <div className="space-y-3">
-                  {currentQuestion.options.map((option) => (
-                    <label
-                      key={option.id}
-                      className="flex items-center p-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 transition"
+            ) : (
+              <>
+                <div className="mb-8">
+                  <div className="flex items-start justify-between mb-4">
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                      {currentQuestion.text}
+                    </h2>
+                    <button
+                      onClick={toggleFlagQuestion}
+                      className={`p-3 rounded-lg transition ${
+                        flaggedQuestions.has(currentQuestion.id)
+                          ? 'bg-orange-100 dark:bg-orange-900 text-orange-600 dark:text-orange-300'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:text-orange-600'
+                      }`}
+                      title="Mark for review"
                     >
-                      <input
-                        type="radio"
-                        name={`question-${currentQuestion.id}`}
-                        value={option.id}
-                        checked={currentAnswer.answer === option.id}
-                        onChange={(e) => handleAnswerChange(e.target.value)}
-                        className="w-5 h-5 text-blue-600 dark:text-blue-400 cursor-pointer"
-                      />
-                      <span className="ml-4 text-gray-800 dark:text-gray-200">{option.text}</span>
-                    </label>
-                  ))}
-                </div>
-              )}
+                      <Flag size={20} fill={flaggedQuestions.has(currentQuestion.id) ? 'currentColor' : 'none'} />
+                    </button>
+                  </div>
 
-              {currentQuestion.type === 'tf' && (
-                <div className="space-y-3">
-                  {[
-                    { id: 'true', text: 'True' },
-                    { id: 'false', text: 'False' },
-                  ].map((option) => (
-                    <label
-                      key={option.id}
-                      className="flex items-center p-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 transition"
-                    >
-                      <input
-                        type="radio"
-                        name={`question-${currentQuestion.id}`}
-                        value={option.id}
-                        checked={currentAnswer.answer === option.id}
-                        onChange={(e) => handleAnswerChange(e.target.value)}
-                        className="w-5 h-5 text-blue-600 dark:text-blue-400 cursor-pointer"
-                      />
-                      <span className="ml-4 text-gray-800 dark:text-gray-200 font-medium">{option.text}</span>
-                    </label>
-                  ))}
+                  <div className="flex items-center gap-4 text-sm">
+                    <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-full font-medium">
+                      {currentQuestion.type.toUpperCase()}
+                    </span>
+                    <span className="text-gray-600 dark:text-gray-400">
+                      Marks: {currentQuestion.marks}
+                    </span>
+                    <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded-full font-medium capitalize">
+                      {currentQuestion.difficulty}
+                    </span>
+                  </div>
                 </div>
-              )}
 
-              {currentQuestion.type === 'short_answer' && (
-                <textarea
-                  value={typeof currentAnswer.answer === 'string' ? currentAnswer.answer : ''}
-                  onChange={(e) => handleAnswerChange(e.target.value)}
-                  placeholder="Type your answer here..."
-                  className="w-full h-48 p-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none resize-none"
-                />
-              )}
-            </div>
+                {/* Question Options */}
+                <div className="space-y-4">
+                  {currentQuestion.type === 'mcq' && currentQuestion.options && (
+                    <div className="space-y-3">
+                      {currentQuestion.options.map((option) => (
+                        <label
+                          key={option.id}
+                          className="flex items-center p-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 transition"
+                        >
+                          <input
+                            type="radio"
+                            name={`question-${currentQuestion.id}`}
+                            value={option.id}
+                            checked={String(currentAnswer.answer) === String(option.id)}
+                            onChange={() => handleAnswerChange(option.id)}
+                            className="w-5 h-5 text-blue-600 dark:text-blue-400 cursor-pointer"
+                          />
+                          <span className="ml-4 text-gray-800 dark:text-gray-200">{option.text}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+
+                  {currentQuestion.type === 'tf' && currentQuestion.options && (
+                    <div className="space-y-3">
+                      {currentQuestion.options.map((option) => (
+                        <label
+                          key={option.id}
+                          className="flex items-center p-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 transition"
+                        >
+                          <input
+                            type="radio"
+                            name={`question-${currentQuestion.id}`}
+                            value={option.id}
+                            checked={String(currentAnswer.answer) === String(option.id)}
+                            onChange={() => handleAnswerChange(option.id)}
+                            className="w-5 h-5 text-blue-600 dark:text-blue-400 cursor-pointer"
+                          />
+                          <span className="ml-4 text-gray-800 dark:text-gray-200 font-medium">{option.text}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+
+                  {currentQuestion.type === 'short_answer' && (
+                    <textarea
+                      value={typeof currentAnswer.answer === 'string' ? currentAnswer.answer : ''}
+                      onChange={(e) => handleAnswerChange(e.target.value)}
+                      placeholder="Type your answer here..."
+                      className="w-full h-48 p-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none resize-none"
+                    />
+                  )}
+                </div>
+              </>
+            )}
 
             {/* Navigation Buttons */}
             <div className="flex gap-4 mt-12">
@@ -392,7 +444,7 @@ export default function QuizPlayerPage() {
               const color = getAnswerColor(status)
               return (
                 <button
-                  key={q.id}
+                  key={`${q.id}-${idx}`}
                   onClick={() => goToQuestion(idx)}
                   className={`
                     aspect-square rounded-lg font-bold text-sm transition transform

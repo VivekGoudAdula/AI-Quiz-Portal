@@ -10,6 +10,12 @@ export default function InstructorDashboard() {
   const { user } = useAuthStore()
   const [quizzes, setQuizzes] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [dashboardStats, setDashboardStats] = useState({
+    totalQuizzes: 0,
+    totalStudents: 0,
+    avgPerformance: 0,
+    activeQuizzes: 0
+  });
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [activeTab, setActiveTab] = useState<'quizzes' | 'generate' | 'assign'>('quizzes')
   const [selectedQuizForAssign, setSelectedQuizForAssign] = useState<any | null>(null)
@@ -24,9 +30,20 @@ export default function InstructorDashboard() {
     passingScore: 40,
   })
 
+
   useEffect(() => {
-    loadQuizzes()
+    loadQuizzes();
+    loadDashboardStats();
   }, [])
+
+  const loadDashboardStats = async () => {
+    try {
+      const response = await apiClient.getInstructorDashboardStats();
+      setDashboardStats(response.data);
+    } catch (err) {
+      console.error('Failed to load dashboard stats:', err);
+    }
+  }
 
   const loadQuizzes = async () => {
     try {
@@ -75,14 +92,11 @@ export default function InstructorDashboard() {
   }
 
   const statCards = [
-    { label: 'Total Quizzes', value: quizzes.length, icon: BookOpen, color: 'from-blue-500 to-blue-600' },
-    { label: 'Total Students', value: '45', icon: Users, color: 'from-purple-500 to-purple-600' },
-    { label: 'Avg Performance', value: '78%', icon: TrendingUp, color: 'from-green-500 to-green-600' },
-    { label: 'Active Quizzes', value: quizzes.filter((q: any) => {
-      const now = Date.now()
-      return q.startTime <= now && q.endTime >= now
-    }).length, icon: Clock, color: 'from-orange-500 to-orange-600' },
-  ]
+    { label: 'Total Quizzes', value: dashboardStats.totalQuizzes, icon: BookOpen, color: 'from-blue-500 to-blue-600' },
+    { label: 'Total Students', value: dashboardStats.totalStudents, icon: Users, color: 'from-purple-500 to-purple-600' },
+    { label: 'Avg Performance', value: `${dashboardStats.avgPerformance}%`, icon: TrendingUp, color: 'from-green-500 to-green-600' },
+    { label: 'Active Quizzes', value: dashboardStats.activeQuizzes, icon: Clock, color: 'from-orange-500 to-orange-600' },
+  ];
 
   return (
     <Layout>

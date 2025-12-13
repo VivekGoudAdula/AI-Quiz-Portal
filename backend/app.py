@@ -1,8 +1,17 @@
+
 import os
 from flask import Flask
 from flask_cors import CORS
 from flask_login import LoginManager
 from dotenv import load_dotenv
+from database import db
+from routes.auth import auth_bp
+from routes.quizzes import quizzes_bp
+from routes.attempts import attempts_bp
+from routes.proctoring import proctoring_bp
+from routes.instructor import instructor_bp
+from routes.admin import admin_bp
+from routes.leaderboard import leaderboard_bp
 
 # Load environment variables
 load_dotenv()
@@ -15,11 +24,6 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-pro
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///quiz_portal.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# JWT configuration (required for flask_jwt_extended)
-app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'super-secret-jwt-key')  # Change in production!
-app.config['JWT_TOKEN_LOCATION'] = ['headers']
-app.config['JWT_HEADER_NAME'] = 'Authorization'
-app.config['JWT_HEADER_TYPE'] = 'Bearer'
 
 # Enable CORS
 cors_origins = os.getenv('CORS_ORIGINS', 'http://localhost:5173,http://localhost:3000').split(',')
@@ -42,8 +46,8 @@ def unauthorized():
     from flask import redirect, url_for
     return redirect(url_for('auth.login', next=request.url))
 
+
 # Initialize Database
-from database import db
 db.init_app(app)
 
 @login_manager.user_loader
@@ -51,15 +55,8 @@ def load_user(user_id):
     from database import User
     return User.query.get(user_id)
 
-# Register Blueprints
-from routes.auth import auth_bp
-from routes.quizzes import quizzes_bp
-from routes.attempts import attempts_bp
-from routes.proctoring import proctoring_bp
-from routes.instructor import instructor_bp
-from routes.admin import admin_bp
-from routes.leaderboard import leaderboard_bp
 
+# Register Blueprints
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
 app.register_blueprint(quizzes_bp, url_prefix='/api/quizzes')
 app.register_blueprint(attempts_bp, url_prefix='/api/attempts')

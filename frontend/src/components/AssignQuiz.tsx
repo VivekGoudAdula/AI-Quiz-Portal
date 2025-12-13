@@ -22,14 +22,16 @@ export const AssignQuiz: React.FC<AssignQuizProps> = ({ quizId, quizTitle, onAss
   const [students, setStudents] = useState<Student[]>([]);
 
   useEffect(() => {
-    // In a real app, fetch students from backend
-    // For now, we'll use mock data
-    const mockStudents: Student[] = [
-      { id: '1', name: 'John Doe', email: 'john@example.com' },
-      { id: '2', name: 'Jane Smith', email: 'jane@example.com' },
-      { id: '3', name: 'Bob Johnson', email: 'bob@example.com' },
-    ];
-    setStudents(mockStudents);
+    // Fetch real students from backend
+    const fetchStudents = async () => {
+      try {
+        const res = await apiClient.listUsers('student');
+        setStudents(res.data.users || []);
+      } catch (err: any) {
+        setError('Failed to load students');
+      }
+    };
+    fetchStudents();
   }, []);
 
   const handleStudentToggle = (studentId: string) => {

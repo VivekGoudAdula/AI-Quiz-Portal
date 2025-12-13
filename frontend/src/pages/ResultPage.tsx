@@ -23,17 +23,17 @@ interface Answer {
 }
 
 interface ResultData {
-  attemptId: string
-  quizId: string
-  userId: string
-  startTime: number
-  endTime: number
-  finalScore: number
-  totalMarks: number
-  answers: Answer[]
-  questions: Question[]
-  warnings: number
-  suspicionScore: number
+	attemptId: string
+	quizId: string
+	userId: string
+	startTime: number
+	endTime: number
+	finalScore: number
+	totalMarks: number
+	answers: Answer[]
+	questions: Question[]
+	warnings: number
+	suspicionScore: number
 }
 
 export default function ResultPage() {
@@ -45,6 +45,18 @@ export default function ResultPage() {
   const [loading, setLoading] = useState(true)
   const [expandedQuestion, setExpandedQuestion] = useState<string | null>(null)
 
+  // Make answers and questions arrays available throughout the component
+  const answers = result && Array.isArray(result.answers) ? result.answers : [];
+  const questions = result && Array.isArray(result.questions) ? result.questions : [];
+
+  // Fallbacks for missing or incomplete result
+  const finalScore = result && typeof result.finalScore === 'number' ? result.finalScore : 0;
+  const totalMarks = result && typeof result.totalMarks === 'number' ? result.totalMarks : 0;
+  const suspicionScore = result && typeof result.suspicionScore === 'number' ? result.suspicionScore : 0;
+  const warnings = result && typeof result.warnings === 'number' ? result.warnings : 0;
+  const startTime = result && typeof result.startTime === 'number' ? result.startTime : null;
+  const endTime = result && typeof result.endTime === 'number' ? result.endTime : null;
+
   useEffect(() => {
     loadResults()
   }, [attemptId])
@@ -53,7 +65,8 @@ export default function ResultPage() {
     try {
       setLoading(true)
       const response = await apiClient.getAttemptResults(attemptId!)
-      setResult(response.data)
+      // Use .results from backend response
+      setResult(response.data.results)
     } catch (err) {
       console.error('Failed to load results:', err)
       alert('Failed to load results. Please try again.')
@@ -91,14 +104,18 @@ export default function ResultPage() {
     )
   }
 
-  const percentage = Math.round((result.finalScore / result.totalMarks) * 100)
-  const timeTaken = Math.floor((result.endTime - result.startTime) / 1000)
-  const minutes = Math.floor(timeTaken / 60)
-  const seconds = timeTaken % 60
+  const percentage = totalMarks > 0 ? Math.round((finalScore / totalMarks) * 100) : 0;
+  const timeTaken = startTime !== null && endTime !== null ? Math.floor((endTime - startTime) / 1000) : 0;
+  const minutes = !isNaN(timeTaken) ? Math.floor(timeTaken / 60) : 0;
+  const seconds = !isNaN(timeTaken) ? timeTaken % 60 : 0;
 
-  const correctAnswers = result.answers.filter((a) => a.isCorrect).length
-  const incorrectAnswers = result.answers.filter((a) => !a.isCorrect).length
-  const averageTimePerQuestion = Math.round(timeTaken / result.answers.length)
+  const correctAnswers = answers.filter((a) => a.isCorrect).length;
+  const incorrectAnswers = answers.filter((a) => a.isCorrect === false).length;
+  const averageTimePerQuestion = answers.length > 0 && !isNaN(timeTaken) ? Math.round(timeTaken / answers.length) : 0;
+
+  // Calculate accuracy and incorrect percentage
+  const accuracy = answers.length ? ((correctAnswers / answers.length) * 100).toFixed(0) : 0;
+  const incorrectPercent = answers.length ? ((incorrectAnswers / answers.length) * 100).toFixed(0) : 0;
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-600 dark:text-green-400'
@@ -158,9 +175,9 @@ export default function ResultPage() {
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <span className={`text-5xl font-bold ${getScoreColor(percentage)}`}>{percentage}%</span>
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
-                      {result.finalScore}/{result.totalMarks}
-                    </span>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        {finalScore}/{totalMarks}
+                      </span>
                   </div>
                 </div>
               </div>
@@ -183,7 +200,7 @@ export default function ResultPage() {
                 <CheckCircle size={32} className="text-green-600 dark:text-green-400 opacity-20" />
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-500">
-                {((correctAnswers / result.answers.length) * 100).toFixed(0)}% accuracy
+                {accuracy}% accuracy
               </p>
             </div>
 
@@ -196,7 +213,7 @@ export default function ResultPage() {
                 <XCircle size={32} className="text-red-600 dark:text-red-400 opacity-20" />
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-500">
-                {((incorrectAnswers / result.answers.length) * 100).toFixed(0)}% incorrect
+                {incorrectPercent}% incorrect
               </p>
             </div>
 
@@ -220,15 +237,15 @@ export default function ResultPage() {
                 <div>
                   <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">SECURITY SCORE</p>
                   <p className={`text-3xl font-bold mt-2 ${
-                    result.suspicionScore < 0.3 ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'
+                    suspicionScore < 0.3 ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'
                   }`}>
-                    {(result.suspicionScore * 100).toFixed(0)}%
+                    {(suspicionScore * 100).toFixed(0)}%
                   </p>
                 </div>
                 <Flag size={32} className="opacity-20" />
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-500">
-                {result.warnings} warning(s) detected
+                {warnings} warning(s) detected
               </p>
             </div>
           </div>
@@ -241,9 +258,9 @@ export default function ResultPage() {
             </h2>
 
             <div className="space-y-4">
-              {result.answers.map((answer, idx) => {
-                const question = result.questions.find((q) => q.id === answer.questionId)
-                const isExpanded = expandedQuestion === answer.questionId
+              {answers.map((answer, idx) => {
+                const question = questions.find((q) => q.id === answer.questionId);
+                const isExpanded = expandedQuestion === answer.questionId;
 
                 return (
                   <div
@@ -298,7 +315,15 @@ export default function ResultPage() {
                             YOUR ANSWER:
                           </p>
                           <p className="text-gray-900 dark:text-white p-3 bg-gray-50 dark:bg-gray-700 rounded">
-                            {answer.userAnswer}
+                            {/* Always show user's answer as text for MCQ/TF */}
+                            {(() => {
+                              if (question?.options && answer.userAnswer) {
+                                // If userAnswer is an ID, map to text
+                                const selected = question.options.find(opt => opt.id === answer.userAnswer || opt.text === answer.userAnswer);
+                                return selected ? selected.text : answer.userAnswer;
+                              }
+                              return answer.userAnswer;
+                            })()}
                           </p>
                         </div>
 
@@ -308,7 +333,14 @@ export default function ResultPage() {
                               CORRECT ANSWER:
                             </p>
                             <p className="text-green-600 dark:text-green-400 p-3 bg-green-50 dark:bg-green-900/20 rounded">
-                              {question?.correctAnswer}
+                              {/* Always show correct answer as text for MCQ/TF */}
+                              {(() => {
+                                if (question?.options && question.correctAnswer) {
+                                  const correct = question.options.find(opt => opt.id === question.correctAnswer || opt.text === question.correctAnswer);
+                                  return correct ? correct.text : question.correctAnswer;
+                                }
+                                return question?.correctAnswer;
+                              })()}
                             </p>
                           </div>
                         )}
@@ -319,23 +351,73 @@ export default function ResultPage() {
                               ALL OPTIONS:
                             </p>
                             <div className="space-y-2">
-                              {question.options.map((opt) => (
-                                <div
-                                  key={opt.id}
-                                  className={`p-2 rounded border ${
-                                    opt.isCorrect
-                                      ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-                                      : 'border-gray-200 dark:border-gray-700'
-                                  }`}
-                                >
-                                  <p className="text-sm">
-                                    {opt.text}
-                                    {opt.isCorrect && (
-                                      <span className="ml-2 text-green-600 dark:text-green-400 font-bold">✓</span>
+                              {question.options.map((opt) => {
+                                const isSelected = answer.userAnswer === opt.id || (Array.isArray(answer.userAnswer) && answer.userAnswer.includes(opt.id));
+                                return (
+                                  <div
+                                    key={opt.id}
+                                    className={`p-2 rounded border flex items-center gap-2 ${
+                                      opt.isCorrect
+                                        ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                                        : isSelected
+                                          ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                                          : 'border-gray-200 dark:border-gray-700'
+                                    }`}
+                                  >
+                                    <p className="text-sm flex-1">
+                                      {opt.text}
+                                      {opt.isCorrect && (
+                                        <span className="ml-2 text-green-600 dark:text-green-400 font-bold">✓</span>
+                                      )}
+                                      {isSelected && !opt.isCorrect && (
+                                        <span className="ml-2 text-red-600 dark:text-red-400 font-bold">✗</span>
+                                      )}
+                                    </p>
+                                    {isSelected && (
+                                      <span className="text-xs px-2 py-1 rounded bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-semibold">Your Choice</span>
                                     )}
-                                  </p>
-                                </div>
-                              ))}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Show correct/wrong for TF as well */}
+                        {question?.type === 'tf' && question?.options && (
+                          <div>
+                            <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-2">
+                              ALL OPTIONS:
+                            </p>
+                            <div className="space-y-2">
+                              {question.options.map((opt) => {
+                                const isSelected = answer.userAnswer === opt.id || (Array.isArray(answer.userAnswer) && answer.userAnswer.includes(opt.id));
+                                return (
+                                  <div
+                                    key={opt.id}
+                                    className={`p-2 rounded border flex items-center gap-2 ${
+                                      opt.isCorrect
+                                        ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                                        : isSelected
+                                          ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                                          : 'border-gray-200 dark:border-gray-700'
+                                    }`}
+                                  >
+                                    <p className="text-sm flex-1">
+                                      {opt.text}
+                                      {opt.isCorrect && (
+                                        <span className="ml-2 text-green-600 dark:text-green-400 font-bold">✓</span>
+                                      )}
+                                      {isSelected && !opt.isCorrect && (
+                                        <span className="ml-2 text-red-600 dark:text-red-400 font-bold">✗</span>
+                                      )}
+                                    </p>
+                                    {isSelected && (
+                                      <span className="text-xs px-2 py-1 rounded bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-semibold">Your Choice</span>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
                         )}
@@ -379,13 +461,20 @@ export default function ResultPage() {
             <p>
               Completed on{' '}
               <span className="font-semibold">
-                {new Date(result.endTime).toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
+                {endTime ? (() => {
+                  const dateObj = new Date(endTime);
+                  const dateStr = dateObj.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  });
+                  const timeStr = dateObj.toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                  });
+                  return `${dateStr} at ${timeStr}`;
+                })() : 'N/A'}
               </span>
             </p>
           </div>

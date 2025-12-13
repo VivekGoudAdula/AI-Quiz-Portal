@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import get_jwt_identity
+from flask import g
 from database import db, User, Attempt, Quiz, ProctoringEvent
 from utils.decorators import token_required, role_required
 from datetime import datetime, timedelta
@@ -9,7 +9,7 @@ admin_bp = Blueprint('admin', __name__)
 
 @admin_bp.route('/users', methods=['GET'])
 @token_required
-@role_required('admin')
+@role_required('admin', 'instructor')
 def list_users():
     """List all users"""
     try:

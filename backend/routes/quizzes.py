@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import get_jwt_identity
-from flask_jwt_extended import jwt_required
-from database import db, Quiz, Question, QuestionOption, Answer, Attempt, User, Quiz_Questions
+from flask import g
+from flask_login import current_user
+from database import db, Quiz, Question, QuestionOption, Answer, Attempt, User, Quiz_Questions, QuizAssignment
 from utils.decorators import token_required, role_required, validate_request_json
 from datetime import datetime
 import random
@@ -14,7 +14,7 @@ quizzes_bp = Blueprint('quizzes', __name__)
 def list_quizzes():
     """List available quizzes with filters"""
     try:
-        user_id = get_jwt_identity()
+        user_id = current_user.id
         filter_type = request.args.get('filter', 'all')  # all, active, upcoming, completed
         
         now = datetime.utcnow()
@@ -35,22 +35,27 @@ def list_quizzes():
             quiz_dict = quiz.to_dict()
             attempt_count = Attempt.query.filter_by(user_id=user_id, quiz_id=quiz.id).count()
             quiz_dict['studentAttempts'] = attempt_count
-            quiz_dict['instructor'] = quiz.instructor.to_dict()
+            if quiz.instructor is not None:
+                quiz_dict['instructor'] = quiz.instructor.to_dict()
+            else:
+                quiz_dict['instructor'] = None
             quizzes_data.append(quiz_dict)
         
         return jsonify({'quizzes': quizzes_data}), 200
     except Exception as e:
+        import traceback
+        print("[ERROR] Exception in list_quizzes:")
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @quizzes_bp.route('', methods=['POST'])
 @token_required
 @role_required('instructor', 'admin')
 @validate_request_json(['title', 'startTime', 'endTime', 'durationSeconds'])
-@jwt_required()
 def create_quiz():
     """Create new quiz (instructor only)"""
     try:
-        user_id = get_jwt_identity()
+        user_id = current_user.id
         data = request.get_json()
         
         print(f"[DEBUG] Creating quiz with data: {data}")
@@ -87,7 +92,6 @@ def create_quiz():
             shuffle_options=data.get('shuffleOptions', False),
             adaptive=data.get('adaptive', False),
             proctoring_enabled=data.get('proctoringEnabled', False),
-            max_attempts=data.get('maxAttempts', 1),
             passing_score=data.get('passingScore', 40.0)
         )
         
@@ -117,7 +121,7 @@ def get_quiz(quiz_id):
         quiz_dict['instructor'] = quiz.instructor.to_dict()
         
         # Include questions with options
-        user_id = get_jwt_identity()
+        user_id = current_user.id
         questions = [q.to_dict() for q in quiz.questions]
         
         # Shuffle questions if configured
@@ -142,7 +146,7 @@ def get_quiz(quiz_id):
 def update_quiz(quiz_id):
     """Update quiz (instructor only)"""
     try:
-        user_id = get_jwt_identity()
+        user_id = current_user.id
         quiz = Quiz.query.get(quiz_id)
         
         if not quiz:
@@ -174,8 +178,6 @@ def update_quiz(quiz_id):
         if 'proctoringEnabled' in data:
             quiz.proctoring_enabled = data['proctoringEnabled']
         
-        if 'maxAttempts' in data:
-            quiz.max_attempts = max(1, data['maxAttempts'])
         
         if 'passingScore' in data:
             quiz.passing_score = max(0, data['passingScore'])
@@ -196,7 +198,7 @@ def update_quiz(quiz_id):
 def delete_quiz(quiz_id):
     """Delete quiz (instructor only)"""
     try:
-        user_id = get_jwt_identity()
+        user_id = current_user.id
         quiz = Quiz.query.get(quiz_id)
         
         if not quiz:
@@ -225,7 +227,7 @@ def delete_quiz(quiz_id):
 def add_question_to_quiz(quiz_id):
     """Add question to quiz"""
     try:
-        user_id = get_jwt_identity()
+        user_id = current_user.id
         quiz = Quiz.query.get(quiz_id)
         
         if not quiz:
@@ -266,7 +268,7 @@ def add_question_to_quiz(quiz_id):
 def remove_question_from_quiz(quiz_id, question_id):
     """Remove question from quiz"""
     try:
-        user_id = get_jwt_identity()
+        user_id = current_user.id
         quiz = Quiz.query.get(quiz_id)
         
         if not quiz:
@@ -297,7 +299,7 @@ def remove_question_from_quiz(quiz_id, question_id):
 def generate_ai_questions():
     """Generate AI-based questions for a topic"""
     try:
-        user_id = get_jwt_identity()
+        user_id = current_user.id
         data = request.get_json()
         
         topic = data.get('topic', '').strip()
@@ -646,47 +648,47 @@ def _generate_general_questions(topic: str, difficulty: str, count: int) -> list
 def assign_quiz_to_students(quiz_id):
     """Assign quiz to students"""
     try:
-        user_id = get_jwt_identity()
+        user_id = current_user.id
         quiz = Quiz.query.get(quiz_id)
-        
         if not quiz:
             return jsonify({'error': 'Quiz not found'}), 404
-        
         if quiz.created_by_id != user_id:
             return jsonify({'error': 'You can only assign your own quizzes'}), 403
-        
         data = request.get_json()
         student_ids = data.get('studentIds', [])
         due_date_str = data.get('dueDate')
-        
         if not student_ids or not isinstance(student_ids, list):
             return jsonify({'error': 'studentIds must be a non-empty list'}), 400
-        
         try:
             due_date = datetime.fromisoformat(due_date_str) if due_date_str else None
         except (ValueError, TypeError):
             return jsonify({'error': 'Invalid due date format'}), 400
-        
+
+        # --- Ensure quiz start_time is now or earlier ---
+        now = datetime.utcnow()
+        if quiz.start_time > now:
+            quiz.start_time = now
+            db.session.add(quiz)
+
         assigned_count = 0
-        
         for student_id in student_ids:
             student = User.query.get(student_id)
             if not student or student.role != 'student':
                 continue
-            
-            # Create assignment record
-            assignment = {
-                'quiz_id': quiz_id,
-                'student_id': student_id,
-                'assigned_by_id': user_id,
-                'assigned_at': datetime.utcnow(),
-                'due_date': due_date
-            }
-            
-            # Add to quiz_assignments table (will be created in database.py)
-            # For now, we'll store this info in a simple structure
+            # Prevent duplicate assignments
+            existing = QuizAssignment.query.filter_by(quiz_id=quiz_id, student_id=student_id).first()
+            if existing:
+                continue
+            assignment = QuizAssignment(
+                quiz_id=quiz_id,
+                student_id=student_id,
+                assigned_by_id=user_id,
+                assigned_at=datetime.utcnow(),
+                due_date=due_date
+            )
+            db.session.add(assignment)
             assigned_count += 1
-        
+        db.session.commit()
         return jsonify({
             'message': f'Quiz assigned to {assigned_count} students',
             'assignedCount': assigned_count,
@@ -701,25 +703,24 @@ def assign_quiz_to_students(quiz_id):
 def get_assigned_quizzes():
     """Get quizzes assigned to the current student"""
     try:
-        user_id = get_jwt_identity()
+        user_id = current_user.id
         user = User.query.get(user_id)
-        
         if not user or user.role != 'student':
             return jsonify({'error': 'Only students can view assigned quizzes'}), 403
-        
-        # Get all quizzes where assignments exist for this student
-        # For now, return all available quizzes
-        quizzes = Quiz.query.all()
-        
+        # Get all quizzes assigned to this student
+        assignments = QuizAssignment.query.filter_by(student_id=user_id).all()
         quizzes_data = []
-        for quiz in quizzes:
+        for assignment in assignments:
+            quiz = assignment.quiz
             quiz_dict = quiz.to_dict()
-            attempt = Attempt.query.filter_by(user_id=user_id, quiz_id=quiz.id).first()
+            quiz_dict['dueDate'] = assignment.due_date.isoformat() if assignment.due_date else None
+            # Get the latest submitted attempt for this quiz by this user
+            attempt = Attempt.query.filter_by(user_id=user_id, quiz_id=quiz.id, is_submitted=True).order_by(Attempt.start_time.desc()).first()
             quiz_dict['attempted'] = attempt is not None
-            quiz_dict['score'] = attempt.score if attempt else None
+            quiz_dict['score'] = attempt.final_score if attempt else None
+            quiz_dict['attemptId'] = attempt.id if attempt else None
             quiz_dict['instructor'] = quiz.instructor.to_dict()
             quizzes_data.append(quiz_dict)
-        
         return jsonify({'quizzes': quizzes_data}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500

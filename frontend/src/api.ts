@@ -1,8 +1,12 @@
+
 import axios, { AxiosInstance } from 'axios'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 
 class APIClient {
+    getInstructorDashboardStats() {
+      return this.client.get('/instructor/dashboard-stats');
+    }
   private client: AxiosInstance
 
   constructor() {
@@ -184,7 +188,7 @@ class APIClient {
 
   // Quiz Player endpoints
   startQuizAttempt(quizId: string) {
-    return this.client.post(`/attempts/start`, { quizId })
+    return this.client.post(`/attempts/${quizId}/start`)
   }
 
   getQuizDetail(quizId: string) {

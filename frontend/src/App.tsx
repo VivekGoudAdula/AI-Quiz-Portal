@@ -12,6 +12,9 @@ import AdminDashboard from './pages/AdminDashboard'
 import QuizPlayerPage from './pages/QuizPlayerPage'
 import ResultPage from './pages/ResultPage'
 import LeaderboardPage from './pages/LeaderboardPage'
+import QuizzesPage from './pages/QuizzesPage'
+import HistoryPage from './pages/HistoryPage'
+import ProfilePage from './pages/ProfilePage'
 
 // Components
 import ProtectedRoute from './components/ProtectedRoute'
@@ -49,9 +52,10 @@ export default function App() {
         <Route path="/dashboard" element={<ProtectedRoute requiredRole="student"><StudentDashboard /></ProtectedRoute>} />
         <Route path="/quiz/:quizId" element={<ProtectedRoute requiredRole="student"><QuizPlayerPage /></ProtectedRoute>} />
         <Route path="/quiz/:quizId/results/:attemptId" element={<ProtectedRoute requiredRole="student"><ResultPage /></ProtectedRoute>} />
-        <Route path="/quizzes" element={<ProtectedRoute requiredRole="student"><div>Quizzes (Coming soon)</div></ProtectedRoute>} />
+        <Route path="/quizzes" element={<ProtectedRoute requiredRole="student"><QuizzesPage /></ProtectedRoute>} />
         <Route path="/leaderboard" element={<ProtectedRoute requiredRole="student"><LeaderboardPage /></ProtectedRoute>} />
-        <Route path="/history" element={<ProtectedRoute requiredRole="student"><div>Attempt History (Coming soon)</div></ProtectedRoute>} />
+        <Route path="/history" element={<ProtectedRoute requiredRole="student"><HistoryPage /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute requiredRole="student"><ProfilePage /></ProtectedRoute>} />
 
         {/* Instructor Routes */}
         <Route path="/instructor/dashboard" element={<ProtectedRoute requiredRole="instructor"><InstructorDashboard /></ProtectedRoute>} />
