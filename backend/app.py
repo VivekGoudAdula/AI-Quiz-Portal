@@ -23,7 +23,11 @@ app = Flask(__name__)
 # Configuration
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///quiz_portal.db')
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# Allow cross-origin cookies for session authentication
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+app.config['SESSION_COOKIE_SECURE'] = True
 
 
 # Enable CORS
