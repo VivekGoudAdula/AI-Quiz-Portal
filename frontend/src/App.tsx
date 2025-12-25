@@ -6,6 +6,7 @@ import { apiClient } from './api'
 // Pages
 import LoginPage from './pages/LoginPage'
 import SignupPage from './pages/SignupPage'
+import LandingPage from './pages/LandingPage'
 import StudentDashboard from './pages/StudentDashboard'
 import InstructorDashboard from './pages/InstructorDashboard'
 import InstructorQuizzesPage from './pages/InstructorQuizzesPage'
@@ -75,7 +76,11 @@ export default function App() {
         <Route path="/admin/flagged" element={<ProtectedRoute requiredRole="admin"><div>Flagged Attempts (Coming soon)</div></ProtectedRoute>} />
 
         {/* Default Route */}
-        <Route path="/" element={<Navigate to={user ? (user.role === 'instructor' ? '/instructor/dashboard' : user.role === 'admin' ? '/admin/dashboard' : '/dashboard') : '/login'} />} />
+        <Route path="/" element={
+          user
+            ? <Navigate to={user.role === 'instructor' ? '/instructor/dashboard' : user.role === 'admin' ? '/admin/dashboard' : '/dashboard'} />
+            : <LandingPage />
+        } />
       </Routes>
     </Router>
   )
