@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { LogIn, UserPlus, Lock, Monitor, User, Shield, ClipboardCheck, BarChart2, Cloud, ArrowRightCircle } from 'lucide-react';
+import { LogIn, UserPlus, Lock, Monitor, User, Shield, ClipboardCheck, BarChart2, ArrowRightCircle } from 'lucide-react';
 import ExamsPreparationAnimation from '../components/ExamsPreparationAnimation';
 
 export default function LandingPage() {
